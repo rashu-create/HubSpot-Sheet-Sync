@@ -116,15 +116,16 @@ _sync_lock = asyncio.Lock()
 _sync_running = False
 
 
-async def _run_sync_background() -> None:
+async def _run_sync_background(dry_run: bool = False) -> None:
     """Run sync in a thread pool (blocking I/O) and record result."""
     global _sync_running
     loop = asyncio.get_event_loop()
     try:
-        result = await loop.run_in_executor(None, lambda: run_sync(dry_run=False))
-        append_run_history(result)
-        from src import slack
-        slack.notify_success(result)
+        result = await loop.run_in_executor(None, lambda: run_sync(dry_run=dry_run))
+        append_run_history(result, run_type="DRY_RUN" if dry_run else "SYNC")
+        if not dry_run:
+            from src import slack
+            slack.notify_success(result)
     except Exception as exc:
         logger.error("Background sync failed: %s", exc, exc_info=True)
         from src import slack
@@ -230,7 +231,7 @@ async def dashboard(request: Request):
 
 
 @app.post("/api/sync")
-async def trigger_sync(request: Request, background_tasks=None):
+async def trigger_sync(request: Request, dry_run: bool = False):
     """Trigger a sync run. Returns 409 if one is already running."""
     global _sync_running
 
@@ -242,12 +243,11 @@ async def trigger_sync(request: Request, background_tasks=None):
             raise HTTPException(status_code=409, detail="Sync already in progress")
         _sync_running = True
 
-    # Schedule as background task
-    asyncio.get_event_loop().create_task(_run_sync_background())
+    asyncio.get_event_loop().create_task(_run_sync_background(dry_run=dry_run))
 
     return JSONResponse(
         status_code=202,
-        content={"message": "Sync started", "running": True},
+        content={"message": "Dry run started" if dry_run else "Sync started", "running": True, "dry_run": dry_run},
     )
 
 

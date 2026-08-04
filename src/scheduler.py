@@ -37,11 +37,14 @@ def _ensure_data_dir() -> None:
     _DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _result_to_dict(result: RunResult) -> dict:
+def _result_to_dict(result: RunResult, run_type: str = "SYNC") -> dict:
     """Serialise a RunResult to a JSON-friendly dict."""
+    duration_s = round((result.finished_at - result.started_at).total_seconds())
     return {
+        "run_type": run_type,
         "started_at": result.started_at.isoformat(),
         "finished_at": result.finished_at.isoformat(),
+        "duration_s": f"{duration_s}s",
         "rows_total": result.rows_total,
         "rows_synced": result.rows_synced,
         "rows_skipped": result.rows_skipped,
@@ -50,7 +53,7 @@ def _result_to_dict(result: RunResult) -> dict:
     }
 
 
-def append_run_history(result: RunResult) -> None:
+def append_run_history(result: RunResult, run_type: str = "SYNC") -> None:
     """Append RunResult to data/run_history.json, keeping last 100 entries."""
     _ensure_data_dir()
 
@@ -63,7 +66,7 @@ def append_run_history(result: RunResult) -> None:
             logger.warning("Could not read run history: %s — starting fresh", exc)
             history = []
 
-    history.append(_result_to_dict(result))
+    history.append(_result_to_dict(result, run_type=run_type))
     # Trim to last 100
     if len(history) > _MAX_HISTORY:
         history = history[-_MAX_HISTORY:]
@@ -99,7 +102,7 @@ def _sync_job() -> None:
     logger.info("Scheduled sync starting...")
     try:
         result = run_sync(dry_run=False)
-        append_run_history(result)
+        append_run_history(result, run_type="SYNC")
         slack.notify_success(result)
     except Exception as exc:
         logger.error("Scheduled sync failed: %s", exc, exc_info=True)
@@ -116,7 +119,7 @@ def _sync_job() -> None:
             errors=[error_msg],
             misses=[],
         )
-        append_run_history(failed_result)
+        append_run_history(failed_result, run_type="SYNC")
 
 
 def get_scheduler() -> BackgroundScheduler | None:

@@ -7,105 +7,138 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <header class="header">
-    <div class="header-inner">
-      <h1 class="site-title">HubSpot → Sheet Sync</h1>
-      {% if auth_enabled and user %}
-        <span class="user-pill">{{ user }} &nbsp;·&nbsp; <a href="/auth/logout">Sign out</a></span>
-      {% endif %}
-    </div>
-  </header>
 
-  <main class="container">
-
-    {# ── Status card ─────────────────────────────────────────────────────────── #}
-    <section class="card status-card">
-      <div class="status-indicator {{ status_color }}"></div>
-      <div class="status-body">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-title">HubSpot Sheet Sync</h1>
+      <p class="page-subtitle">
         {% if last_result %}
-          <p class="status-line">
-            Last sync:
-            <strong>{{ last_result.finished_at | replace("T", " ") | truncate(19, killwords=True, end="") }} UTC</strong>
-          </p>
-          <p class="status-sub">
-            {{ last_result.rows_synced }} rows updated &nbsp;·&nbsp;
-            {{ last_result.rows_skipped }} skipped &nbsp;·&nbsp;
-            {{ last_result.misses | length }} no-match
-          </p>
-          {% if last_result.errors %}
-          <p class="status-error">⚠ {{ last_result.errors | length }} error(s) during last run</p>
-          {% endif %}
+          <span class="dot dot-{{ status_color }}"></span>
+          Last sync: {{ last_result.finished_at | replace("T", " ") | truncate(19, killwords=True, end="") }} UTC
         {% else %}
-          <p class="status-line">No sync run recorded yet.</p>
+          <span class="dot dot-red"></span>
+          No sync run yet
         {% endif %}
-      </div>
-    </section>
+      </p>
+    </div>
+    <div class="page-header-right">
+      {% if auth_enabled and user %}
+        <span class="user-label">{{ user }}</span>
+        <a href="/auth/logout" class="btn-ghost">Sign out</a>
+      {% endif %}
+      <button class="btn-ghost" onclick="location.reload()">↺ Refresh</button>
+    </div>
+  </div>
 
-    {# ── Action card ─────────────────────────────────────────────────────────── #}
-    <section class="card action-card">
-      <div class="action-row">
-        <div class="next-run">
-          {% if next_runs %}
-            <span class="label">Next scheduled run</span>
-            <span class="value">{{ next_runs[0] | replace("T", " ") | truncate(19, killwords=True, end="") }} UTC</span>
-          {% else %}
-            <span class="label">Scheduler</span>
-            <span class="value">Disabled</span>
-          {% endif %}
+  <div class="page-content">
+
+    {# ── Stat cards ─────────────────────────────────────────────────────── #}
+    <div class="stats-grid">
+      <div class="stat-card stat-dark">
+        <div class="stat-number">{{ last_result.rows_total if last_result else "—" }}</div>
+        <div class="stat-label">PIPELINE ROWS</div>
+      </div>
+      <div class="stat-card stat-orange">
+        <div class="stat-number">{{ last_result.rows_synced if last_result else "—" }}</div>
+        <div class="stat-label">ROWS SYNCED</div>
+      </div>
+      <div class="stat-card stat-purple">
+        <div class="stat-number">{{ last_result.misses | length if last_result else "—" }}</div>
+        <div class="stat-label">NO HUBSPOT MATCH</div>
+      </div>
+      <div class="stat-card stat-mint">
+        <div class="stat-number">{{ last_result.errors | length if last_result else "—" }}</div>
+        <div class="stat-label">ERRORS</div>
+      </div>
+    </div>
+
+    {# ── Actions ────────────────────────────────────────────────────────── #}
+    <div class="panel">
+      <div class="panel-sections">
+
+        <div class="panel-section">
+          <div class="panel-section-label">SYNC</div>
+          <div class="panel-section-body">
+            <button class="btn-action" id="btn-sync" {% if sync_running %}disabled{% endif %}>
+              ↺ {% if sync_running %}Sync in progress…{% else %}Run Sync{% endif %}
+            </button>
+          </div>
         </div>
 
-        <form method="post" action="/api/sync" id="sync-form">
-          {% if sync_running %}
-            <button class="btn btn-running" disabled>⟳ Sync in progress…</button>
-          {% else %}
-            <button class="btn btn-primary" type="submit">▶ Sync Now</button>
-          {% endif %}
-        </form>
+        <div class="panel-divider"></div>
+
+        <div class="panel-section">
+          <div class="panel-section-label">DRY RUN</div>
+          <div class="panel-section-body">
+            <button class="btn-action btn-secondary" id="btn-dryrun" {% if sync_running %}disabled{% endif %}>
+              ▷ Dry Run
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <div class="panel-section">
+          <div class="panel-section-label">NEXT SCHEDULED RUN</div>
+          <div class="panel-section-body">
+            {% if next_runs %}
+              <span class="schedule-value">{{ next_runs[0] | replace("T", " ") | truncate(19, killwords=True, end="") }} UTC</span>
+              {% if next_runs | length > 1 %}
+                <span class="schedule-secondary">then {{ next_runs[1] | replace("T", " ") | truncate(19, killwords=True, end="") }} UTC</span>
+              {% endif %}
+            {% else %}
+              <span class="schedule-value muted">Scheduler disabled</span>
+            {% endif %}
+          </div>
+        </div>
+
       </div>
-      <p class="action-note" id="sync-note" style="display:none;">
-        Sync started — this page will not auto-refresh. Check back in a minute.
-      </p>
-    </section>
+      <p class="sync-note" id="sync-note" style="display:none;"></p>
+    </div>
 
-    {# ── Last-run misses ──────────────────────────────────────────────────────── #}
-    {% if last_result and last_result.misses %}
-    <section class="card">
-      <h2>Domains with no HubSpot match (last run)</h2>
-      <ul class="miss-list">
-        {% for domain in last_result.misses %}
-          <li>{{ domain }}</li>
-        {% endfor %}
-      </ul>
-    </section>
-    {% endif %}
-
-    {# ── Run history ─────────────────────────────────────────────────────────── #}
-    <section class="card">
-      <h2>Recent Runs <span class="badge">last 10</span></h2>
+    {# ── Run History ────────────────────────────────────────────────────── #}
+    <div class="panel">
+      <h2 class="panel-title">Run History</h2>
       {% if history %}
       <div class="table-wrap">
         <table class="runs-table">
           <thead>
             <tr>
-              <th>Started (UTC)</th>
-              <th>Finished (UTC)</th>
-              <th>Total</th>
-              <th>Synced</th>
-              <th>Skipped</th>
-              <th>Errors</th>
-              <th>Misses</th>
+              <th>TIME (UTC)</th>
+              <th>TYPE</th>
+              <th>STATUS</th>
+              <th>TOTAL</th>
+              <th>SYNCED</th>
+              <th>SKIPPED</th>
+              <th>MISSES</th>
+              <th>ERRORS</th>
+              <th>DURATION</th>
             </tr>
           </thead>
           <tbody>
             {% for run in history %}
-            <tr class="{{ 'row-error' if run.errors else '' }}">
-              <td>{{ run.started_at | replace("T", " ") | truncate(19, killwords=True, end="") }}</td>
-              <td>{{ run.finished_at | replace("T", " ") | truncate(19, killwords=True, end="") }}</td>
+            <tr>
+              <td class="td-time">{{ run.started_at | replace("T", " ") | truncate(19, killwords=True, end="") }}</td>
+              <td>{{ run.get("run_type", "SYNC") }}</td>
+              <td>
+                {% if run.errors %}
+                  <span class="badge badge-error">ERROR</span>
+                {% else %}
+                  <span class="badge badge-ok">OK</span>
+                {% endif %}
+              </td>
               <td>{{ run.rows_total }}</td>
               <td>{{ run.rows_synced }}</td>
               <td>{{ run.rows_skipped }}</td>
-              <td>{{ run.errors | length }}</td>
               <td>{{ run.misses | length }}</td>
+              <td>{{ run.errors | length }}</td>
+              <td class="td-duration">
+                {% set started = run.started_at %}
+                {% set finished = run.finished_at %}
+                {% if started and finished %}
+                  {{ run.get("duration_s", "—") }}
+                {% else %}—{% endif %}
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -114,40 +147,57 @@
       {% else %}
         <p class="empty-state">No run history yet.</p>
       {% endif %}
-    </section>
+    </div>
 
-  </main>
+    {# ── Misses from last run ───────────────────────────────────────────── #}
+    {% if last_result and last_result.misses %}
+    <div class="panel">
+      <h2 class="panel-title">No HubSpot Match — Last Run <span class="badge-count">{{ last_result.misses | length }}</span></h2>
+      <ul class="miss-list">
+        {% for domain in last_result.misses %}
+          <li>{{ domain }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
 
-  <footer class="footer">
-    HubSpot Sheet Sync &nbsp;·&nbsp; reo.dev
-  </footer>
+  </div>
 
   <script>
-    // Show note after sync form submit; don't rely on redirect
-    const form = document.getElementById('sync-form');
-    if (form) {
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const note = document.getElementById('sync-note');
-        try {
-          const resp = await fetch('/api/sync', { method: 'POST' });
-          if (resp.status === 409) {
-            alert('A sync is already running. Please wait.');
-            return;
-          }
-          if (resp.ok || resp.status === 202) {
-            if (note) note.style.display = 'block';
-            const btn = form.querySelector('button');
-            if (btn) {
-              btn.textContent = '⟳ Sync in progress…';
-              btn.disabled = true;
-            }
-          }
-        } catch (err) {
-          alert('Failed to start sync: ' + err);
+    async function triggerSync(dryRun) {
+      const noteEl = document.getElementById('sync-note');
+      const btnSync = document.getElementById('btn-sync');
+      const btnDry = document.getElementById('btn-dryrun');
+
+      btnSync.disabled = true;
+      btnDry.disabled = true;
+
+      try {
+        const url = dryRun ? '/api/sync?dry_run=true' : '/api/sync';
+        const resp = await fetch(url, { method: 'POST' });
+
+        if (resp.status === 409) {
+          alert('A sync is already running. Please wait.');
+          btnSync.disabled = false;
+          btnDry.disabled = false;
+          return;
         }
-      });
+        if (resp.ok || resp.status === 202) {
+          const label = dryRun ? 'Dry run started — check back in a minute.' : 'Sync started — check back in a minute.';
+          noteEl.textContent = label;
+          noteEl.style.display = 'block';
+          btnSync.textContent = '↺ Sync in progress…';
+        }
+      } catch (err) {
+        alert('Failed to start sync: ' + err);
+        btnSync.disabled = false;
+        btnDry.disabled = false;
+      }
     }
+
+    document.getElementById('btn-sync').addEventListener('click', () => triggerSync(false));
+    document.getElementById('btn-dryrun').addEventListener('click', () => triggerSync(true));
   </script>
+
 </body>
 </html>
