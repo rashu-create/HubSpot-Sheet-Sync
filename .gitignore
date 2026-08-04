@@ -1,0 +1,13 @@
+.env
+credentials.json
+*.json
+!.env.example
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+data/run_history.json

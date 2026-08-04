@@ -1,0 +1,619 @@
+====================================================================================================
+DEAL PROPERTIES — matching target fields
+====================================================================================================
+Found 149 matching deal properties (out of 400 total)
+
+  [dealinformation] 'hs_all_owner_ids'                                 | 'All owner IDs'                               | select
+  [deal_activity] 'hs_associated_deal_registration_product_interests' | 'Associated Shared Deal Product Interests'    | checkbox  options: ['Additional Portal', 'Ads Add-On', 'Brand Domain', 'Calculated Properties Limit Increase', 'Content Hub Enterprise', 'Content Hub Professional', 'Content Hub Starter', 'CMS Enterprise', 'CMS Professional', 'HubSpot CMS']
+  [predictive_deal_score_feature_properties] 'hs_average_call_duration'                         | 'Average call duration'                       | calculation_rollup
+  [dealscripted] 'hs_average_deal_owner_duration_in_current_stage'  | 'Average Deal Owner Duration In Current Stage' | number
+  [dealinformation] 'closedate'                                        | 'Close Date'                                  | date
+  [dealinformation] 'hs_closed_amount'                                 | 'Closed Deal Amount'                          | calculation_equation
+  [dealinformation] 'hs_closed_amount_in_home_currency'                | 'Closed deal amount in home currency'         | calculation_equation
+  [dealscripted] 'hs_closed_deal_close_date'                        | 'Closed Deal Close Date'                      | calculation_equation
+  [dealscripted] 'hs_closed_deal_create_date'                       | 'Closed Deal Create Date'                     | calculation_equation
+  [stage_management] 'closed_lost_details'                              | 'Closed Lost Details'                         | textarea
+  [close_&_pricing] 'closed_lost_reason'                               | 'Closed Lost Reason'                          | textarea
+  [dealinformation] 'closed_lost_reasons'                              | 'Closed Lost Reasons'                         | select  options: ['Pricing/Budget Constraints', 'Preferred Competitor tool', 'Small GTM Team', 'Will revisit later', 'Perceived Overlap with existing stack', 'Champion left', 'Too many stakeholders involved', 'Junior Champion', 'Other']
+  [dealinformation] 'hs_closed_won_count'                              | 'Closed won count'                            | calculation_equation
+  [dealinformation] 'hs_closed_won_date'                               | 'Closed Won Date (Internal)'                  | date
+  [close_&_pricing] 'closed_won_reason'                                | 'Closed Won Reason'                           | textarea
+  [dealinformation] 'closed_won_reasons'                               | 'Closed Won Reasons'                          | select  options: ['Looking actively for an intent tool', 'Hiring Sales/Marketing/DevRel', 'New GTM Leader', 'New round of funding', 'Expanding into enterprise segment', 'Launching New product', 'Other']
+  [dealinformation] 'comments'                                         | 'Comments'                                    | textarea
+  [company_properties_sync] 'company_number_of_employees'                      | 'Company: Number of Employees'                | number
+  [company_properties_sync] 'company_size_of_marketing_team'                   | 'Company: Size of Marketing Team'             | number
+  [company_properties_sync] 'company_size_of_revops_team'                      | 'Company: Size of RevOps Team'                | number
+  [company_properties_sync] 'company_size_of_sales_team'                       | 'Company: Size of Sales Team'                 | number
+  [company_properties_sync] 'company_total_funding'                            | 'Company: Total Funding'                      | number
+  [dealinformation] 'conversion'                                       | 'Conversion'                                  | select  options: ['Yes', 'No', 'Maybe']
+  [multiaccountmanagement] 'hs_cross_sell_opportunity'                        | 'Cross-sell Opportunity'                      | booleancheckbox  options: ['true', 'false']
+  [dealstages] 'hs_v2_cumulative_time_in_143372076'               | 'Cumulative time in "6. Trial Started (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_143372077'               | 'Cumulative time in "7. Trial Ended: Cold (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_145314089'               | 'Cumulative time in "7. Trial Ended: Lost (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_143372078'               | 'Cumulative time in "7.5. Trial Ended: Warm (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180720472'               | 'Cumulative time in "Closed lost (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682163'               | 'Cumulative time in "Closed Lost (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_1341363761'              | 'Cumulative time in "Closed Lost (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180720471'               | 'Cumulative time in "Closed won (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_1341363760'              | 'Cumulative time in "Closed Won (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180737073'               | 'Cumulative time in "Follow up call booked (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_appointmentscheduled'    | 'Cumulative time in "Meeting Booked (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_decisionmakerboughtin'   | 'Cumulative time in "Opportunity (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682159'               | 'Cumulative time in "Pricing Aligned (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180737069'               | 'Cumulative time in "Pricing discussed (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682158'               | 'Cumulative time in "Pricing discussed (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_closedwon'               | 'Cumulative time in "Pricing Discussion (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_1349822727'              | 'Cumulative time in "Sales Qualified Lead (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180737070'               | 'Cumulative time in "trial started (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_date_entered_143372076'                     | 'Date entered "6. Trial Started (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_143372077'                     | 'Date entered "7. Trial Ended: Cold (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_145314089'                     | 'Date entered "7. Trial Ended: Lost (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_143372078'                     | 'Date entered "7.5. Trial Ended: Warm (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_180720472'                     | 'Date entered "Closed lost (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_234682163'                     | 'Date entered "Closed Lost (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_1341363761'                    | 'Date entered "Closed Lost (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_180720471'                     | 'Date entered "Closed won (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_1341363760'                    | 'Date entered "Closed Won (Sales Pipeline)"'  | date
+  [dealstages] 'hs_v2_date_entered_180737073'                     | 'Date entered "Follow up call booked (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_appointmentscheduled'          | 'Date entered "Meeting Booked (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_decisionmakerboughtin'         | 'Date entered "Opportunity (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_234682159'                     | 'Date entered "Pricing Aligned (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_180737069'                     | 'Date entered "Pricing discussed (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_234682158'                     | 'Date entered "Pricing discussed (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_closedwon'                     | 'Date entered "Pricing Discussion (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_1349822727'                    | 'Date entered "Sales Qualified Lead (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_180737070'                     | 'Date entered "trial started (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_current_stage'                 | 'Date entered current stage'                  | calculation_equation
+  [dealstages] 'hs_v2_date_exited_143372076'                      | 'Date exited "6. Trial Started (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_143372077'                      | 'Date exited "7. Trial Ended: Cold (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_145314089'                      | 'Date exited "7. Trial Ended: Lost (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_143372078'                      | 'Date exited "7.5. Trial Ended: Warm (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_180720472'                      | 'Date exited "Closed lost (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_234682163'                      | 'Date exited "Closed Lost (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_1341363761'                     | 'Date exited "Closed Lost (Sales Pipeline)"'  | date
+  [dealstages] 'hs_v2_date_exited_180720471'                      | 'Date exited "Closed won (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_1341363760'                     | 'Date exited "Closed Won (Sales Pipeline)"'   | date
+  [dealstages] 'hs_v2_date_exited_180737073'                      | 'Date exited "Follow up call booked (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_appointmentscheduled'           | 'Date exited "Meeting Booked (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_decisionmakerboughtin'          | 'Date exited "Opportunity (Sales Pipeline)"'  | date
+  [dealstages] 'hs_v2_date_exited_234682159'                      | 'Date exited "Pricing Aligned (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_180737069'                      | 'Date exited "Pricing discussed (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_234682158'                      | 'Date exited "Pricing discussed (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_closedwon'                      | 'Date exited "Pricing Discussion (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_1349822727'                     | 'Date exited "Sales Qualified Lead (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_180737070'                      | 'Date exited "trial started (Accounts with intent )"' | date
+  [dealinformation] 'date_of_first_call'                               | 'Date of first call'                          | date
+  [deal_activity] 'engagements_last_meeting_booked'                  | 'Date of last meeting booked in meetings tool' | date
+  [dealinformation] 'days_to_close'                                    | 'Days to close'                               | calculation_equation
+  [dealinformation] 'hs_days_to_close_raw'                             | 'Days to close (without rounding)'            | calculation_equation
+  [dealinformation] 'hubspot_owner_id'                                 | 'Deal owner'                                  | select
+  [deal_activity] 'dealstage'                                        | 'Deal Stage'                                  | radio
+  [dealinformation] 'hs_deal_stage_probability_shadow'                 | 'Deal stage probability shadow'               | calculation_equation
+  [dealinformation] 'hs_has_empty_conditional_stage_properties'        | 'Has Empty Conditional Stage Properties'      | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'icp_segment'                                      | 'ICP Segment'                                 | calculation_equation
+  [dealinformation] 'icp_size'                                         | 'ICP Size'                                    | select  options: ['Open source', 'Non Open source', 'Open source affiliated', 'Agency / Others']
+  [qualification] 'interest_level'                                   | 'Interest Level'                              | select  options: ['Strong Interest', 'Mild Interest', 'Low Interest']
+  [deal_activity] 'hs_is_active_shared_deal'                         | 'Is Active Shared Deal'                       | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'hs_is_closed_count'                               | 'Is Closed (numeric)'                         | calculation_equation
+  [deal_activity] 'hs_is_closed_lost'                                | 'Is closed lost'                              | calculation_equation  options: ['true', 'false']
+  [deal_activity] 'hs_is_closed_won'                                 | 'Is Closed Won'                               | calculation_equation  options: ['true', 'false']
+  [dealinformation] 'hs_is_closed'                                     | 'Is Deal Closed?'                             | calculation_equation  options: ['true', 'false']
+  [dealinformation] 'hs_is_in_first_deal_stage'                        | 'Is In First Deal Stage'                      | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'l1___company_fits_icp'                            | 'L1 - Company fits ICP'                       | textarea
+  [dealinformation] 'l1_qualification_comments'                        | 'L1 Qualification Comments'                   | textarea
+  [dealinformation] 'l1_qualified_icp'                                 | 'L1 Qualified? [ICP]'                         | select  options: ['Yes', 'Maybe', 'Weak fit', 'No']
+  [dealinformation] 'l2___talking_to_right_person'                     | 'L2 - Talking to right person'                | textarea
+  [dealinformation] 'l2_qualification_comments'                        | 'L2 Qualification Comments'                   | textarea
+  [dealinformation] 'l2_qualified_seniority'                           | 'L2 Qualified? [Seniority]'                   | select  options: ['Yes', 'No', 'May be']
+  [dealinformation] 'l3___they_have_a_need_for_developer_intel'        | 'L3 - They have a need for Developer intel'   | textarea
+  [dealinformation] 'l3_qualification_comments'                        | 'L3 Qualification Comments'                   | textarea
+  [dealinformation] 'l3_qualified_intent'                              | 'L3 Qualified? [Intent]'                      | select  options: ['Yes', 'No', 'Maybe']
+  [deal_activity] 'hs_last_call_id_with_followups'                   | 'Last call ID with followups'                 | number
+  [dealstages] 'hs_v2_latest_time_in_143372076'                   | 'Latest time in "6. Trial Started (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_143372077'                   | 'Latest time in "7. Trial Ended: Cold (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_145314089'                   | 'Latest time in "7. Trial Ended: Lost (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_143372078'                   | 'Latest time in "7.5. Trial Ended: Warm (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180720472'                   | 'Latest time in "Closed lost (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682163'                   | 'Latest time in "Closed Lost (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_1341363761'                  | 'Latest time in "Closed Lost (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180720471'                   | 'Latest time in "Closed won (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_1341363760'                  | 'Latest time in "Closed Won (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180737073'                   | 'Latest time in "Follow up call booked (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_appointmentscheduled'        | 'Latest time in "Meeting Booked (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_decisionmakerboughtin'       | 'Latest time in "Opportunity (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682159'                   | 'Latest time in "Pricing Aligned (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180737069'                   | 'Latest time in "Pricing discussed (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682158'                   | 'Latest time in "Pricing discussed (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_closedwon'                   | 'Latest time in "Pricing Discussion (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_1349822727'                  | 'Latest time in "Sales Qualified Lead (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180737070'                   | 'Latest time in "trial started (Accounts with intent )"' | number
+  [dealinformation] 'hs_likelihood_to_close'                           | 'Likelihood to close by the close date'       | number
+  [dealinformation] 'next_steps'                                       | 'Next Steps'                                  | textarea
+  [dealinformation] 'next_steps_management'                            | 'Next Steps (Management)'                     | textarea
+  [dealinformation] 'next_steps___mg'                                  | 'Next Steps - MG'                             | html
+  [dealinformation] 'next_steps___pa'                                  | 'Next Steps - PA'                             | select  options: ['Keep in touch', 'Piyush to ping - Done', 'Piyush to follow up - Done', 'Piyush to ping vivek - Done', 'Get Trial started', 'TBA', 'Piyush to send trial ending email - Done', 'Piyush to follow up reaching out to another contact', 'Piyush to follow up']
+  [dealinformation] 'next_steps_due_date'                              | 'Next Steps Due Date'                         | date
+  [dealinformation] 'next_steps_due_date_management'                   | 'Next Steps Due Date (Management)'            | date
+  [deal_activity] 'hs_num_associated_active_deal_registrations'      | 'Number of Active Deal Registrations'         | number
+  [predictive_deal_score_feature_properties] 'hs_number_of_call_engagements'                    | 'Number of call engagements'                  | calculation_rollup
+  [predictive_deal_score_feature_properties] 'hs_number_of_inbound_calls'                       | 'Number of inbound calls'                     | calculation_rollup
+  [predictive_deal_score_feature_properties] 'hs_number_of_outbound_calls'                      | 'Number of outbound calls'                    | calculation_rollup
+  [dealinformation] 'opportunity'                                      | 'Opportunity'                                 | select  options: ['Yes', 'No']
+  [deal_activity] 'hubspot_owner_assigneddate'                       | 'Owner assigned date'                         | date
+  [close_&_pricing] 'pricing_plan'                                     | 'Pricing Plan'                                | select  options: ['Startup', 'Pro', 'Business', 'Enterprise', 'Custom']
+  [dealinformation] 'hs_priority'                                      | 'Priority'                                    | select  options: ['low', 'medium', 'high']
+  [dealinformation] 'sdr_owner'                                        | 'SDR Owner'                                   | select  options: ['Nitin', 'Akhil', 'Muni', 'Ads', 'Inbound', 'Referral', 'Outbound - Old', 'Sanika', 'Aaryan', 'Akash']
+  [opportunity_&_trial] 'second_meeting_booked'                            | 'Second Meeting Booked?'                      | select  options: ['Yes', 'No']
+  [opportunity_&_trial] 'second_meeting_date'                              | 'Second Meeting Date'                         | date
+  [dealstages] 'hs_v2_time_in_current_stage'                      | 'Time in current stage'                       | calculation_equation
+  [opportunity_&_trial] 'trial_done'                                       | 'Trial Done?'                                 | select  options: ['Yes', 'To-Start', 'No']
+  [opportunity_&_trial] 'trial_end_date'                                   | 'Trial End Date'                              | date
+  [opportunity_&_trial] 'trial_start_date'                                 | 'Trial Start Date'                            | date
+  [opportunity_&_trial] 'trial_status'                                     | 'Trial Status'                                | select  options: ['To Start', 'Trial - Integrations', 'Trial - Ongoing [Hot]', 'Trial - Ongoing [Cold]', 'Trial - Ended [Hot]', 'Trial - Ended [Cold]', 'Data Trial', 'Trial Not Sure']
+  [dealinformation] 'hs_user_ids_of_all_owners'                        | 'User IDs of all owners'                      | checkbox
+  [dealinformation] 'deal_owner'                                       | 'V2. Deal Owner'                              | select  options: ['PA', 'PJ', 'MG', 'DB', 'CB', 'AT', 'SK', 'AC', 'HA']
+
+====================================================================================================
+COMPANY PROPERTIES — matching target fields
+====================================================================================================
+Found 27 matching company properties (out of 415 total)
+
+  [companyinformation] 'funding_stage'                                    | 'A.Funding stage'                             | select  options: ['Series D', 'Series B', 'Series A', 'Other', 'Venture (Round not Specified)', 'Series C', 'Angel', 'Series F', 'Debt Financing']
+  [companyinformation] 'last_funding_raised_on'                           | 'A.Last funding raised on'                    | date
+  [companyinformation] 'latest_funding'                                   | 'A.Latest Funding'                            | select  options: ['Series C', 'Series A', 'Seed', 'Series B', 'Other', 'Series D', 'Venture (Round not Specified)']
+  [companyinformation] 'latest_funding_amount'                            | 'A.Latest Funding Amount'                     | number
+  [companyinformation] 'total_funding'                                    | 'A.Total Funding'                             | number
+  [companyinformation] 'annualrevenue'                                    | 'Annual Revenue'                              | number
+  [companyinformation] 'hs_annual_revenue_currency_code'                  | 'Annual Revenue Currency Code'                | calculation_equation
+  [companyinformation] 'company_size'                                     | 'Company Size'                                | select  options: ['SMB', 'Midmarket', 'Enterprise']
+  [companyinformation] 'hs_employee_range'                                | 'Employee range'                              | text
+  [companyinformation] 'icp'                                              | 'ICP'                                         | select  options: ['Open source', 'Non Open source', 'Open source affiliated', 'Agency / Others']
+  [companyinformation] 'icp_segment'                                      | 'ICP Segment'                                 | calculation_equation
+  [companyinformation] 'icp_size'                                         | 'ICP Size'                                    | select  options: ['Open source', 'Non Open source', 'Open source affiliated', 'Agency / Others']
+  [companyinformation] 'numberofemployees'                                | 'Number of Employees'                         | number
+  [companyinformation] 'l1_qualified__'                                   | 'R. Is the company ICP Qualified?'            | select  options: ['Yes', 'Maybe', 'Weak fit', 'No']
+  [companyinformation] 'r__size_of_sales_team'                            | 'R. Size of Sales Team '                      | number
+  [companyinformation] 'r_l1_qualification_comments_form'                 | 'R. What makes this company eligible to be an ICP?' | textarea
+  [companyinformation] 'employee_count'                                   | 'R.Employee count'                            | number
+  [companyinformation] 'icp_comments'                                     | 'R.ICP comments'                              | text
+  [companyinformation] 'r_no_of_marketing_employees'                      | 'R.No of Marketing employees'                 | number
+  [companyinformation] 'r_no_of_sales_employees'                          | 'R.No of sales employees'                     | number
+  [companyinformation] 'reo_segments_list'                                | 'REO: Segment Name'                           | checkbox  options: ['caeb718b-35cb-4e82-a787-7d45ddb300b7', '606fd3ac-4f80-4d82-bab9-3e7808eef866', '9ed70766-1032-4b1b-9990-37372e643137', '3e96ae4e-a4d9-492d-83c2-b78ef370b006', 'a1c9d412-63e7-48ae-b0dc-a8630c292a45', 'cd607212-eaaf-4799-805d-fd50e50e6fec', '82e55227-afd0-4853-9f8d-87f3c4b78c40', 'b8a32398-f9d1-4c0f-8e13-0155fa0daf27', '54a60f0c-d541-421d-970d-13c145635245', 'd9b5173a-20c5-4c75-a8d2-fde4109bba62']
+  [companyinformation] 'hs_revenue_range'                                 | 'Revenue range'                               | text
+  [companyinformation] 'sales_team'                                       | 'Sales team '                                 | booleancheckbox  options: ['y', 'n']
+  [companyinformation] 'size_of_marketing_team'                           | 'Size of Marketing Team'                      | number
+  [companyinformation] 'size_of_revops_team'                              | 'Size of RevOps Team'                         | number
+  [companyinformation] 'test__segment_name'                               | 'Test: Segment Name'                          | html
+  [companyinformation] 'total_revenue'                                    | 'Total Revenue'                               | calculation_rollup
+
+====================================================================================================
+SALES PIPELINE STAGES
+====================================================================================================
+
+Pipeline: 'Sales Pipeline'  id=default
+  stage_id='appointmentscheduled'                   label='Meeting Booked'
+  stage_id='qualifiedtobuy'                         label='Meeting Didn’t Happen'
+  stage_id='presentationscheduled'                  label='Meeting Done'
+  stage_id='1349822727'                             label='Sales Qualified Lead'
+  stage_id='decisionmakerboughtin'                  label='Opportunity'
+  stage_id='contractsent'                           label='Trial '
+  stage_id='closedwon'                              label='Pricing Discussion'
+  stage_id='closedlost'                             label='Procurement [Security / Legal]'
+  stage_id='1341363759'                             label='Contract Sent'
+  stage_id='1341363760'                             label='Closed Won'
+  stage_id='1341363761'                             label='Closed Lost'
+  stage_id='1341363762'                             label='Irrelevant'
+  stage_id='1341363763'                             label='Pushed Out'
+
+Pipeline: 'Hot account pipeline'  id=74862640
+
+Pipeline: 'Accounts with intent '  id=98749740
+
+Pipeline: 'R. Deal pipeline'  id=135785756
+
+====================================================================================================
+ALL DEAL PROPERTIES (full dump — for finding unknown cols X, AB, AC, AD, AK)
+====================================================================================================
+
+400 total deal properties:
+
+  [dealinformation] 'hs_actual_duration'                               | 'Actual duration'                             | calculation_equation
+  [dealinformation] 'hs_user_ids_of_all_notification_recipients'       | 'All deal notification recipients'            | checkbox
+  [dealinformation] 'hs_all_owner_ids'                                 | 'All owner IDs'                               | select
+  [dealinformation] 'hs_all_team_ids'                                  | 'All team IDs'                                | select
+  [dealinformation] 'hs_all_accessible_team_ids'                       | 'All teams'                                   | select
+  [deal_revenue] 'amount'                                           | 'Amount'                                      | number
+  [deal_revenue] 'amount_in_home_currency'                          | 'Amount in company currency'                  | calculation_equation
+  [deal_revenue] 'hs_acv'                                           | 'Annual contract value'                       | number
+  [deal_revenue] 'hs_arr'                                           | 'Annual recurring revenue'                    | number
+  [deal_activity] 'hs_associated_deal_registration_product_interests' | 'Associated Shared Deal Product Interests'    | checkbox  options: ['Additional Portal', 'Ads Add-On', 'Brand Domain', 'Calculated Properties Limit Increase', 'Content Hub Enterprise', 'Content Hub Professional', 'Content Hub Starter', 'CMS Enterprise', 'CMS Professional', 'HubSpot CMS']
+  [deal_activity] 'hs_associated_deal_registration_deal_type'        | 'Associated Shared Deal Type'                 | select  options: ['CHANNEL', 'BEST_PARTNER_WINS', 'DIFM', 'COLLAB', 'COLLAB_OR_DIFM']
+  [dealinformation] 'hs_attributed_team_ids'                           | 'Attributed reporting team'                   | checkbox
+  [predictive_deal_score_feature_properties] 'hs_average_call_duration'                         | 'Average call duration'                       | calculation_rollup
+  [dealscripted] 'hs_average_deal_owner_duration_in_current_stage'  | 'Average Deal Owner Duration In Current Stage' | number
+  [dealinformation] 'bottom_up_developer_motion'                       | 'Bottom Up Developer Motion?'                 | checkbox  options: ['Open source', 'Free trial', 'Free tier', 'No']
+  [dealinformation] 'hs_all_assigned_business_unit_ids'                | 'Brands'                                      | checkbox
+  [opportunity_&_trial] 'buyer_involved'                                   | 'Buyer Involved?'                             | select  options: ['Yes', 'No']
+  [deal_activity] 'engagements_last_meeting_booked_campaign'         | 'Campaign of last booking in meetings tool'   | text
+  [dealinformation] 'closedate'                                        | 'Close Date'                                  | date
+  [dealinformation] 'hs_closed_amount'                                 | 'Closed Deal Amount'                          | calculation_equation
+  [dealinformation] 'hs_closed_amount_in_home_currency'                | 'Closed deal amount in home currency'         | calculation_equation
+  [dealscripted] 'hs_closed_deal_close_date'                        | 'Closed Deal Close Date'                      | calculation_equation
+  [dealscripted] 'hs_closed_deal_create_date'                       | 'Closed Deal Create Date'                     | calculation_equation
+  [stage_management] 'closed_lost_details'                              | 'Closed Lost Details'                         | textarea
+  [close_&_pricing] 'closed_lost_reason'                               | 'Closed Lost Reason'                          | textarea
+  [dealinformation] 'closed_lost_reasons'                              | 'Closed Lost Reasons'                         | select  options: ['Pricing/Budget Constraints', 'Preferred Competitor tool', 'Small GTM Team', 'Will revisit later', 'Perceived Overlap with existing stack', 'Champion left', 'Too many stakeholders involved', 'Junior Champion', 'Other']
+  [dealinformation] 'hs_closed_won_count'                              | 'Closed won count'                            | calculation_equation
+  [dealinformation] 'hs_closed_won_date'                               | 'Closed Won Date (Internal)'                  | date
+  [close_&_pricing] 'closed_won_reason'                                | 'Closed Won Reason'                           | textarea
+  [dealinformation] 'closed_won_reasons'                               | 'Closed Won Reasons'                          | select  options: ['Looking actively for an intent tool', 'Hiring Sales/Marketing/DevRel', 'New GTM Leader', 'New round of funding', 'Expanding into enterprise segment', 'Launching New product', 'Other']
+  [dealinformation] 'comments'                                         | 'Comments'                                    | textarea
+  [company_properties_sync] 'company_company_relevant_for_sales'               | 'Company: Company Relevant for Sales?'        | select  options: ['Yes', 'No']
+  [company_properties_sync] 'company_number_of_employees'                      | 'Company: Number of Employees'                | number
+  [company_properties_sync] 'company_relevant_for_sales'                       | 'Company: Relevant for Sales?'                | select  options: ['Yes', 'No']
+  [company_properties_sync] 'company_size_of_marketing_team'                   | 'Company: Size of Marketing Team'             | number
+  [company_properties_sync] 'company_size_of_revops_team'                      | 'Company: Size of RevOps Team'                | number
+  [company_properties_sync] 'company_size_of_sales_team'                       | 'Company: Size of Sales Team'                 | number
+  [company_properties_sync] 'company_total_funding'                            | 'Company: Total Funding'                      | number
+  [dealinformation] 'contact_person__designation_'                     | 'Contact Person (Designation)'                | textarea
+  [dealinformation] 'contact_person__linkedin_url_'                    | 'Contact Person (LinkedIn url)'               | textarea
+  [dealinformation] 'contact_person__name_'                            | 'Contact Person (Name)'                       | textarea
+  [dealinformation] 'contract_duration'                                | 'Contract Duration'                           | select  options: ['1 Year', '2 Years', '1 Year with 6 months exit clause', '1 Year with 3 months exit clause', '6 months', 'Other']
+  [dealinformation] 'conversion'                                       | 'Conversion'                                  | select  options: ['Yes', 'No', 'Maybe']
+  [dealinformation] 'createdate'                                       | 'Create Date'                                 | date
+  [dealinformation] 'hs_created_by_user_id'                            | 'Created by user ID'                          | number
+  [multiaccountmanagement] 'hs_cross_account_note'                            | 'Cross-account Note'                          | textarea
+  [multiaccountmanagement] 'hs_cross_sell_opportunity'                        | 'Cross-sell Opportunity'                      | booleancheckbox  options: ['true', 'false']
+  [dealstages] 'hs_v2_cumulative_time_in_143372074'               | 'Cumulative time in "3. Gone Cold (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_143372073'               | 'Cumulative time in "4. Warm Conversation (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_143372075'               | 'Cumulative time in "5. Trial In discussion (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_143372076'               | 'Cumulative time in "6. Trial Started (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_143372077'               | 'Cumulative time in "7. Trial Ended: Cold (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_145314089'               | 'Cumulative time in "7. Trial Ended: Lost (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_143372078'               | 'Cumulative time in "7.5. Trial Ended: Warm (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_143372079'               | 'Cumulative time in "8. Negotiation (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_145314088'               | 'Cumulative time in "9. Customer (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180737072'               | 'Cumulative time in "Agreed for a trial (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180720472'               | 'Cumulative time in "Closed lost (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682163'               | 'Cumulative time in "Closed Lost (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_1341363761'              | 'Cumulative time in "Closed Lost (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180720471'               | 'Cumulative time in "Closed won (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_1341363760'              | 'Cumulative time in "Closed Won (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180720470'               | 'Cumulative time in "Contract sent (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682161'               | 'Cumulative time in "Contract Sent (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_1341363759'              | 'Cumulative time in "Contract Sent (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682162'               | 'Cumulative time in "Contract signed (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682160'               | 'Cumulative time in "Decision Maker Bought-In (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682157'               | 'Cumulative time in "Deferred to future (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180737074'               | 'Cumulative time in "Discussing internally (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180737073'               | 'Cumulative time in "Follow up call booked (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180737071'               | 'Cumulative time in "Integration in progress (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_1341363762'              | 'Cumulative time in "Irrelevant (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682164'               | 'Cumulative time in "Legal review in progress (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_appointmentscheduled'    | 'Cumulative time in "Meeting Booked (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_qualifiedtobuy'          | 'Cumulative time in "Meeting Didn’t Happen (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_presentationscheduled'   | 'Cumulative time in "Meeting Done (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_decisionmakerboughtin'   | 'Cumulative time in "Opportunity (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682159'               | 'Cumulative time in "Pricing Aligned (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180737069'               | 'Cumulative time in "Pricing discussed (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_234682158'               | 'Cumulative time in "Pricing discussed (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_closedwon'               | 'Cumulative time in "Pricing Discussion (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_closedlost'              | 'Cumulative time in "Procurement [Security / Legal] (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_1341363763'              | 'Cumulative time in "Pushed Out (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_1349822727'              | 'Cumulative time in "Sales Qualified Lead (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_contractsent'            | 'Cumulative time in "Trial  (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_cumulative_time_in_180737070'               | 'Cumulative time in "trial started (Accounts with intent )"' | number
+  [deal_revenue] 'deal_currency_code'                               | 'Currency'                                    | select
+  [dealstages] 'hs_v2_date_entered_143372074'                     | 'Date entered "3. Gone Cold (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_143372073'                     | 'Date entered "4. Warm Conversation (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_143372075'                     | 'Date entered "5. Trial In discussion (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_143372076'                     | 'Date entered "6. Trial Started (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_143372077'                     | 'Date entered "7. Trial Ended: Cold (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_145314089'                     | 'Date entered "7. Trial Ended: Lost (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_143372078'                     | 'Date entered "7.5. Trial Ended: Warm (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_143372079'                     | 'Date entered "8. Negotiation (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_145314088'                     | 'Date entered "9. Customer (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_180737072'                     | 'Date entered "Agreed for a trial (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_180720472'                     | 'Date entered "Closed lost (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_234682163'                     | 'Date entered "Closed Lost (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_1341363761'                    | 'Date entered "Closed Lost (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_180720471'                     | 'Date entered "Closed won (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_1341363760'                    | 'Date entered "Closed Won (Sales Pipeline)"'  | date
+  [dealstages] 'hs_v2_date_entered_180720470'                     | 'Date entered "Contract sent (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_234682161'                     | 'Date entered "Contract Sent (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_1341363759'                    | 'Date entered "Contract Sent (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_234682162'                     | 'Date entered "Contract signed (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_234682160'                     | 'Date entered "Decision Maker Bought-In (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_234682157'                     | 'Date entered "Deferred to future (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_180737074'                     | 'Date entered "Discussing internally (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_180737073'                     | 'Date entered "Follow up call booked (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_180737071'                     | 'Date entered "Integration in progress (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_1341363762'                    | 'Date entered "Irrelevant (Sales Pipeline)"'  | date
+  [dealstages] 'hs_v2_date_entered_234682164'                     | 'Date entered "Legal review in progress (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_appointmentscheduled'          | 'Date entered "Meeting Booked (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_qualifiedtobuy'                | 'Date entered "Meeting Didn’t Happen (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_presentationscheduled'         | 'Date entered "Meeting Done (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_decisionmakerboughtin'         | 'Date entered "Opportunity (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_234682159'                     | 'Date entered "Pricing Aligned (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_180737069'                     | 'Date entered "Pricing discussed (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_234682158'                     | 'Date entered "Pricing discussed (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_closedwon'                     | 'Date entered "Pricing Discussion (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_closedlost'                    | 'Date entered "Procurement [Security / Legal] (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_1341363763'                    | 'Date entered "Pushed Out (Sales Pipeline)"'  | date
+  [dealstages] 'hs_v2_date_entered_1349822727'                    | 'Date entered "Sales Qualified Lead (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_entered_contractsent'                  | 'Date entered "Trial  (Sales Pipeline)"'      | date
+  [dealstages] 'hs_v2_date_entered_180737070'                     | 'Date entered "trial started (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_entered_current_stage'                 | 'Date entered current stage'                  | calculation_equation
+  [dealstages] 'hs_v2_date_exited_143372074'                      | 'Date exited "3. Gone Cold (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_143372073'                      | 'Date exited "4. Warm Conversation (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_143372075'                      | 'Date exited "5. Trial In discussion (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_143372076'                      | 'Date exited "6. Trial Started (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_143372077'                      | 'Date exited "7. Trial Ended: Cold (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_145314089'                      | 'Date exited "7. Trial Ended: Lost (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_143372078'                      | 'Date exited "7.5. Trial Ended: Warm (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_143372079'                      | 'Date exited "8. Negotiation (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_145314088'                      | 'Date exited "9. Customer (Hot account pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_180737072'                      | 'Date exited "Agreed for a trial (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_180720472'                      | 'Date exited "Closed lost (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_234682163'                      | 'Date exited "Closed Lost (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_1341363761'                     | 'Date exited "Closed Lost (Sales Pipeline)"'  | date
+  [dealstages] 'hs_v2_date_exited_180720471'                      | 'Date exited "Closed won (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_1341363760'                     | 'Date exited "Closed Won (Sales Pipeline)"'   | date
+  [dealstages] 'hs_v2_date_exited_180720470'                      | 'Date exited "Contract sent (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_234682161'                      | 'Date exited "Contract Sent (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_1341363759'                     | 'Date exited "Contract Sent (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_234682162'                      | 'Date exited "Contract signed (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_234682160'                      | 'Date exited "Decision Maker Bought-In (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_234682157'                      | 'Date exited "Deferred to future (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_180737074'                      | 'Date exited "Discussing internally (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_180737073'                      | 'Date exited "Follow up call booked (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_180737071'                      | 'Date exited "Integration in progress (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_1341363762'                     | 'Date exited "Irrelevant (Sales Pipeline)"'   | date
+  [dealstages] 'hs_v2_date_exited_234682164'                      | 'Date exited "Legal review in progress (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_appointmentscheduled'           | 'Date exited "Meeting Booked (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_qualifiedtobuy'                 | 'Date exited "Meeting Didn’t Happen (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_presentationscheduled'          | 'Date exited "Meeting Done (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_decisionmakerboughtin'          | 'Date exited "Opportunity (Sales Pipeline)"'  | date
+  [dealstages] 'hs_v2_date_exited_234682159'                      | 'Date exited "Pricing Aligned (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_180737069'                      | 'Date exited "Pricing discussed (Accounts with intent )"' | date
+  [dealstages] 'hs_v2_date_exited_234682158'                      | 'Date exited "Pricing discussed (R. Deal pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_closedwon'                      | 'Date exited "Pricing Discussion (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_closedlost'                     | 'Date exited "Procurement [Security / Legal] (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_1341363763'                     | 'Date exited "Pushed Out (Sales Pipeline)"'   | date
+  [dealstages] 'hs_v2_date_exited_1349822727'                     | 'Date exited "Sales Qualified Lead (Sales Pipeline)"' | date
+  [dealstages] 'hs_v2_date_exited_contractsent'                   | 'Date exited "Trial  (Sales Pipeline)"'       | date
+  [dealstages] 'hs_v2_date_exited_180737070'                      | 'Date exited "trial started (Accounts with intent )"' | date
+  [dealinformation] 'date_of_first_call'                               | 'Date of first call'                          | date
+  [dealinformation] 'date_of_first_meeting'                            | 'Date of First Meeting'                       | date
+  [deal_activity] 'engagements_last_meeting_booked'                  | 'Date of last meeting booked in meetings tool' | date
+  [dealinformation] 'date_of_meeting_sdr_form'                         | 'Date of Meeting (SDR Form)'                  | date
+  [dealinformation] 'days_to_close'                                    | 'Days to close'                               | calculation_equation
+  [dealinformation] 'hs_days_to_close_raw'                             | 'Days to close (without rounding)'            | calculation_equation
+  [dealinformation] 'hs_deal_amount_calculation_preference'            | 'Deal amount calculation preference'          | radio  options: ['TCV', 'ARR', 'MRR', 'CUSTOM']
+  [dealinformation] 'hs_all_collaborator_owner_ids'                    | 'Deal Collaborator'                           | checkbox
+  [dealinformation] 'description'                                      | 'Deal Description'                            | textarea
+  [dealinformation] 'dealname'                                         | 'Deal Name'                                   | text
+  [dealinformation] 'hubspot_owner_id'                                 | 'Deal owner'                                  | select
+  [dealinformation] 'hs_deal_stage_probability'                        | 'Deal probability'                            | number
+  [dealinformation] 'hs_deal_score'                                    | 'Deal Score'                                  | number
+  [dealinformation] 'hs_is_deal_split'                                 | 'Deal Split Added'                            | calculation_equation  options: ['true', 'false']
+  [dealinformation] 'hs_all_deal_split_owner_ids'                      | 'Deal Split Users'                            | checkbox
+  [deal_activity] 'dealstage'                                        | 'Deal Stage'                                  | radio
+  [dealinformation] 'hs_deal_stage_probability_shadow'                 | 'Deal stage probability shadow'               | calculation_equation
+  [dealinformation] 'hs_tag_ids'                                       | 'Deal Tags'                                   | checkbox
+  [dealinformation] 'dealtype'                                         | 'Deal Type'                                   | radio  options: ['newbusiness', 'existingbusiness']
+  [dealinformation] 'dpa_review_status'                                | 'DPA Review Status?'                          | select  options: ['Yes', 'In Progress', 'No', 'Not Required']
+  [deal_revenue] 'hs_exchange_rate'                                 | 'Exchange rate'                               | number
+  [dealinformation] 'hs_forecast_amount'                               | 'Forecast amount'                             | number
+  [dealinformation] 'hs_manual_forecast_category'                      | 'Forecast category'                           | select  options: ['OMIT', 'PIPELINE', 'BEST_CASE', 'COMMIT', 'CLOSED']
+  [dealinformation] 'hs_forecast_probability'                          | 'Forecast probability'                        | number
+  [dealinformation] 'hs_form_id'                                       | 'Form ID'                                     | calculation_rollup
+  [dealinformation] 'hs_line_item_global_term_hs_discount_percentage'  | 'Global Term Line Item Discount Percentage'   | text
+  [dealinformation] 'hs_line_item_global_term_hs_discount_percentage_enabled' | 'Global Term Line Item Discount Percentage Enabled' | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'hs_line_item_global_term_recurringbillingfrequency' | 'Global Term Line Item Recurring Billing Frequency' | text
+  [dealinformation] 'hs_line_item_global_term_recurringbillingfrequency_enabled' | 'Global Term Line Item Recurring Billing Frequency Enabled' | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'hs_line_item_global_term_hs_recurring_billing_period' | 'Global Term Line Item Recurring Billing Period' | text
+  [dealinformation] 'hs_line_item_global_term_hs_recurring_billing_period_enabled' | 'Global Term Line Item Recurring Billing Period Enabled' | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'hs_line_item_global_term_hs_recurring_billing_start_date' | 'Global Term Line Item Recurring Billing Start Date' | text
+  [dealinformation] 'hs_line_item_global_term_hs_recurring_billing_start_date_enabled' | 'Global Term Line Item Recurring Billing Start Date Enabled' | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'go_ahead_from_procurement'                        | 'Go ahead from procurement?'                  | select  options: ['Yes', 'In Progress', 'No']
+  [dealinformation] 'hs_has_empty_conditional_stage_properties'        | 'Has Empty Conditional Stage Properties'      | booleancheckbox  options: ['true', 'false']
+  [deal_activity] 'hs_has_last_conversation_follow_ups'              | 'Has Last Conversation Follow Ups'            | calculation_equation  options: ['true', 'false']
+  [deal_activity] 'hs_has_last_meeting_followups'                    | 'Has Last Meeting Follow Ups'                 | calculation_equation  options: ['true', 'false']
+  [dealinformation] 'hs_campaign'                                      | 'HubSpot Campaign'                            | text
+  [dealinformation] 'hs_createdate'                                    | 'HubSpot Create Date'                         | date
+  [deal_activity] 'hs_synced_deal_owner_name_and_email'              | 'HubSpot Sales Lead'                          | text
+  [deal_activity] 'hs_deal_registration_mrr'                         | 'HubSpot Shared Deal MRR'                     | number
+  [deal_activity] 'hs_deal_registration_mrr_currency_code'           | 'HubSpot Shared Deal MRR Currency Code'       | select
+  [dealinformation] 'hubspot_team_id'                                  | 'HubSpot Team'                                | select
+  [dealinformation] 'icp_segment'                                      | 'ICP Segment'                                 | calculation_equation
+  [dealinformation] 'icp_size'                                         | 'ICP Size'                                    | select  options: ['Open source', 'Non Open source', 'Open source affiliated', 'Agency / Others']
+  [qualification] 'interest_level'                                   | 'Interest Level'                              | select  options: ['Strong Interest', 'Mild Interest', 'Low Interest']
+  [stage_management] 'irrelevant_reason'                                | 'Irrelevant Reason'                           | select  options: ['Not Dev Focused', 'Agency', 'No Budget', 'Pre-GTM', 'Other']
+  [deal_activity] 'hs_is_active_shared_deal'                         | 'Is Active Shared Deal'                       | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'hs_is_closed_count'                               | 'Is Closed (numeric)'                         | calculation_equation
+  [deal_activity] 'hs_is_closed_lost'                                | 'Is closed lost'                              | calculation_equation  options: ['true', 'false']
+  [deal_activity] 'hs_is_closed_won'                                 | 'Is Closed Won'                               | calculation_equation  options: ['true', 'false']
+  [dealinformation] 'hs_is_closed'                                     | 'Is Deal Closed?'                             | calculation_equation  options: ['true', 'false']
+  [dealinformation] 'hs_is_in_first_deal_stage'                        | 'Is In First Deal Stage'                      | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'is_legal_review_required'                         | 'Is Legal Review Required?'                   | select  options: ['Yes', 'No']
+  [dealinformation] 'hs_is_open_count'                                 | 'Is Open (numeric)'                           | calculation_equation
+  [dealinformation] 'is_procurement_team_involved'                     | 'Is Procurement team involved?'               | select  options: ['true', 'false']
+  [dealinformation] 'is_security_review_required'                      | 'Is Security Review Required?'                | select  options: ['Yes', 'No']
+  [dealscripted] 'hs_is_stalled'                                    | 'Is Stalled'                                  | calculation_equation  options: ['true', 'false']
+  [dealscripted] 'hs_is_stalled_after_timestamp'                    | 'Is Stalled After Timestamp'                  | date
+  [dealinformation] 'l1___company_fits_icp'                            | 'L1 - Company fits ICP'                       | textarea
+  [dealinformation] 'l1_qualification_comments'                        | 'L1 Qualification Comments'                   | textarea
+  [dealinformation] 'l1_qualified_icp'                                 | 'L1 Qualified? [ICP]'                         | select  options: ['Yes', 'Maybe', 'Weak fit', 'No']
+  [dealinformation] 'l2___talking_to_right_person'                     | 'L2 - Talking to right person'                | textarea
+  [dealinformation] 'l2_qualification_comments'                        | 'L2 Qualification Comments'                   | textarea
+  [dealinformation] 'l2_qualified_seniority'                           | 'L2 Qualified? [Seniority]'                   | select  options: ['Yes', 'No', 'May be']
+  [dealinformation] 'l3___they_have_a_need_for_developer_intel'        | 'L3 - They have a need for Developer intel'   | textarea
+  [dealinformation] 'l3_qualification_comments'                        | 'L3 Qualification Comments'                   | textarea
+  [dealinformation] 'l3_qualified_intent'                              | 'L3 Qualified? [Intent]'                      | select  options: ['Yes', 'No', 'Maybe']
+  [dealinformation] 'hs_notes_last_activity'                           | 'Last Activity'                               | text
+  [deal_activity] 'notes_last_updated'                               | 'Last Activity Date'                          | date
+  [deal_activity] 'hs_last_call_id_with_followups'                   | 'Last call ID with followups'                 | number
+  [deal_activity] 'notes_last_contacted'                             | 'Last Contacted'                              | date
+  [deal_activity] 'hs_last_conversation_with_followups_object_coordinates' | 'Last conversation with follow-ups'           | text
+  [deal_activity] 'hs_last_email_with_followups_object_coordinates'  | 'Last email with follow-ups'                  | text
+  [deal_activity] 'hs_last_gs_shared_message'                        | 'Last GS Shared Message'                      | calculation_rollup
+  [deal_activity] 'hs_last_meeting_id_with_followups'                | 'Last meeting ID with followups'              | number
+  [deal_activity] 'hs_lastmodifieddate'                              | 'Last Modified Date'                          | date
+  [deal_activity] 'hs_last_partner_shared_message_date'              | 'Last Partner Shared Message Date'            | calculation_rollup
+  [deal_activity] 'hs_last_shared_message_create_date'               | 'Last Shared Message Create Date'             | calculation_rollup
+  [deal_activity] 'hs_latest_approval_status'                        | 'Latest Approval Status'                      | text
+  [deal_activity] 'hs_latest_approval_status_approval_id'            | 'Latest Approval Status Approval ID'          | number
+  [predictive_deal_score_feature_properties] 'hs_latest_marketing_email_click_date'             | 'Latest marketing email click date'           | calculation_rollup
+  [predictive_deal_score_feature_properties] 'hs_latest_marketing_email_open_date'              | 'Latest marketing email open date'            | calculation_rollup
+  [predictive_deal_score_feature_properties] 'hs_latest_marketing_email_reply_date'             | 'Latest marketing email reply date'           | calculation_rollup
+  [dealinformation] 'hs_latest_meeting_activity'                       | 'Latest meeting activity'                     | date
+  [predictive_deal_score_feature_properties] 'hs_latest_sales_email_click_date'                 | 'Latest sales email click date'               | calculation_rollup
+  [predictive_deal_score_feature_properties] 'hs_latest_sales_email_open_date'                  | 'Latest sales email open date'                | calculation_rollup
+  [predictive_deal_score_feature_properties] 'hs_latest_sales_email_reply_date'                 | 'Latest sales email reply date'               | calculation_rollup
+  [dealstages] 'hs_v2_latest_time_in_143372074'                   | 'Latest time in "3. Gone Cold (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_143372073'                   | 'Latest time in "4. Warm Conversation (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_143372075'                   | 'Latest time in "5. Trial In discussion (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_143372076'                   | 'Latest time in "6. Trial Started (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_143372077'                   | 'Latest time in "7. Trial Ended: Cold (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_145314089'                   | 'Latest time in "7. Trial Ended: Lost (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_143372078'                   | 'Latest time in "7.5. Trial Ended: Warm (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_143372079'                   | 'Latest time in "8. Negotiation (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_145314088'                   | 'Latest time in "9. Customer (Hot account pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180737072'                   | 'Latest time in "Agreed for a trial (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_180720472'                   | 'Latest time in "Closed lost (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682163'                   | 'Latest time in "Closed Lost (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_1341363761'                  | 'Latest time in "Closed Lost (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180720471'                   | 'Latest time in "Closed won (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_1341363760'                  | 'Latest time in "Closed Won (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180720470'                   | 'Latest time in "Contract sent (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682161'                   | 'Latest time in "Contract Sent (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_1341363759'                  | 'Latest time in "Contract Sent (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682162'                   | 'Latest time in "Contract signed (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682160'                   | 'Latest time in "Decision Maker Bought-In (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682157'                   | 'Latest time in "Deferred to future (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180737074'                   | 'Latest time in "Discussing internally (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_180737073'                   | 'Latest time in "Follow up call booked (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_180737071'                   | 'Latest time in "Integration in progress (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_1341363762'                  | 'Latest time in "Irrelevant (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682164'                   | 'Latest time in "Legal review in progress (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_appointmentscheduled'        | 'Latest time in "Meeting Booked (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_qualifiedtobuy'              | 'Latest time in "Meeting Didn’t Happen (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_presentationscheduled'       | 'Latest time in "Meeting Done (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_decisionmakerboughtin'       | 'Latest time in "Opportunity (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682159'                   | 'Latest time in "Pricing Aligned (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_180737069'                   | 'Latest time in "Pricing discussed (Accounts with intent )"' | number
+  [dealstages] 'hs_v2_latest_time_in_234682158'                   | 'Latest time in "Pricing discussed (R. Deal pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_closedwon'                   | 'Latest time in "Pricing Discussion (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_closedlost'                  | 'Latest time in "Procurement [Security / Legal] (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_1341363763'                  | 'Latest time in "Pushed Out (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_1349822727'                  | 'Latest time in "Sales Qualified Lead (Sales Pipeline)"' | number
+  [dealstages] 'hs_v2_latest_time_in_contractsent'                | 'Latest time in "Trial  (Sales Pipeline)"'    | number
+  [dealstages] 'hs_v2_latest_time_in_180737070'                   | 'Latest time in "trial started (Accounts with intent )"' | number
+  [analyticsinformation] 'hs_analytics_latest_source'                       | 'Latest Traffic Source'                       | calculation_equation  options: ['ORGANIC_SEARCH', 'PAID_SEARCH', 'EMAIL_MARKETING', 'SOCIAL_MEDIA', 'REFERRALS', 'OTHER_CAMPAIGNS', 'DIRECT_TRAFFIC', 'OFFLINE', 'PAID_SOCIAL', 'AI_REFERRALS']
+  [analyticsinformation] 'hs_analytics_latest_source_company'               | 'Latest Traffic Source Company'               | select  options: ['ORGANIC_SEARCH', 'PAID_SEARCH', 'EMAIL_MARKETING', 'SOCIAL_MEDIA', 'REFERRALS', 'OTHER_CAMPAIGNS', 'DIRECT_TRAFFIC', 'OFFLINE', 'PAID_SOCIAL', 'AI_REFERRALS']
+  [analyticsinformation] 'hs_analytics_latest_source_contact'               | 'Latest Traffic Source Contact'               | select  options: ['ORGANIC_SEARCH', 'PAID_SEARCH', 'EMAIL_MARKETING', 'SOCIAL_MEDIA', 'REFERRALS', 'OTHER_CAMPAIGNS', 'DIRECT_TRAFFIC', 'OFFLINE', 'PAID_SOCIAL', 'AI_REFERRALS']
+  [analyticsinformation] 'hs_analytics_latest_source_data_1'                | 'Latest Traffic Source Data 1'                | text
+  [analyticsinformation] 'hs_analytics_latest_source_data_1_company'        | 'Latest Traffic Source Data 1 Company'        | text
+  [analyticsinformation] 'hs_analytics_latest_source_data_1_contact'        | 'Latest Traffic Source Data 1 Contact'        | text
+  [analyticsinformation] 'hs_analytics_latest_source_data_2'                | 'Latest Traffic Source Data 2'                | text
+  [analyticsinformation] 'hs_analytics_latest_source_data_2_company'        | 'Latest Traffic Source Data 2 Company'        | text
+  [analyticsinformation] 'hs_analytics_latest_source_data_2_contact'        | 'Latest Traffic Source Data 2 Contact'        | text
+  [analyticsinformation] 'hs_analytics_latest_source_timestamp'             | 'Latest Traffic Source Timestamp'             | number
+  [analyticsinformation] 'hs_analytics_latest_source_timestamp_company'     | 'Latest Traffic Source Timestamp Company'     | date
+  [analyticsinformation] 'hs_analytics_latest_source_timestamp_contact'     | 'Latest Traffic Source Timestamp Contact'     | date
+  [dealinformation] 'hs_likelihood_to_close'                           | 'Likelihood to close by the close date'       | number
+  [dealinformation] 'hs_manual_campaign_ids'                           | 'Manual campaign ids'                         | calculation_rollup
+  [deal_activity] 'engagements_last_meeting_booked_medium'           | 'Medium of last booking in meetings tool'     | text
+  [dealinformation] 'hs_merged_object_ids'                             | 'Merged Deal IDs'                             | checkbox
+  [deal_revenue] 'hs_mrr'                                           | 'Monthly recurring revenue'                   | number
+  [dealinformation] 'msa_review'                                       | 'MSA Review Status'                           | select  options: ['Yes', 'In Progress', 'No']
+  [deal_activity] 'hs_net_pipeline_impact'                           | 'Net Pipeline Impact'                         | number
+  [dealinformation] 'hs_notes_next_activity'                           | 'Next Activity'                               | text
+  [deal_activity] 'notes_next_activity_date'                         | 'Next Activity Date'                          | date
+  [dealinformation] 'hs_notes_next_activity_type'                      | 'Next Activity Type'                          | select  options: ['CALL', 'CONVERSATION_SESSION', 'INCOMING_EMAIL', 'EMAIL', 'FORWARDED_EMAI', 'LINKEDIN_MESSAGE', 'MEETING', 'NOTE', 'POSTAL_MAIL', 'PUBLISHING_TASK']
+  [dealinformation] 'hs_next_meeting_id'                               | 'Next Meeting'                                | number
+  [dealinformation] 'hs_next_meeting_name'                             | 'Next Meeting Name'                           | text
+  [dealinformation] 'hs_next_meeting_start_time'                       | 'Next Meeting Start Time'                     | date
+  [dealinformation] 'hs_next_step'                                     | 'Next step'                                   | textarea
+  [dealinformation] 'hs_next_step_updated_at'                          | 'Next Step Updated At'                        | calculation_equation
+  [dealinformation] 'next_steps'                                       | 'Next Steps'                                  | textarea
+  [dealinformation] 'next_steps_management'                            | 'Next Steps (Management)'                     | textarea
+  [dealinformation] 'next_steps___mg'                                  | 'Next Steps - MG'                             | html
+  [dealinformation] 'next_steps___pa'                                  | 'Next Steps - PA'                             | select  options: ['Keep in touch', 'Piyush to ping - Done', 'Piyush to follow up - Done', 'Piyush to ping vivek - Done', 'Get Trial started', 'TBA', 'Piyush to send trial ending email - Done', 'Piyush to follow up reaching out to another contact', 'Piyush to follow up']
+  [dealinformation] 'next_steps_due_date'                              | 'Next Steps Due Date'                         | date
+  [dealinformation] 'next_steps_due_date_management'                   | 'Next Steps Due Date (Management)'            | date
+  [deal_activity] 'hs_num_associated_active_deal_registrations'      | 'Number of Active Deal Registrations'         | number
+  [dealinformation] 'num_associated_contacts'                          | 'Number of Associated Contacts'               | calculation_rollup
+  [dealinformation] 'hs_num_of_associated_line_items'                  | 'Number of Associated Line Items'             | number
+  [predictive_deal_score_feature_properties] 'hs_number_of_call_engagements'                    | 'Number of call engagements'                  | calculation_rollup
+  [deal_activity] 'hs_num_associated_deal_registrations'             | 'Number of Deal Registrations'                | number
+  [deal_activity] 'hs_num_associated_deal_splits'                    | 'Number of Deal Splits'                       | number
+  [predictive_deal_score_feature_properties] 'hs_number_of_inbound_calls'                       | 'Number of inbound calls'                     | calculation_rollup
+  [predictive_deal_score_feature_properties] 'hs_number_of_outbound_calls'                      | 'Number of outbound calls'                    | calculation_rollup
+  [predictive_deal_score_feature_properties] 'hs_number_of_overdue_tasks'                       | 'Number of overdue tasks'                     | calculation_rollup
+  [deal_activity] 'num_notes'                                        | 'Number of Sales Activities'                  | number
+  [predictive_deal_score_feature_properties] 'hs_number_of_scheduled_meetings'                  | 'Number of scheduled meetings'                | calculation_rollup
+  [dealinformation] 'hs_num_target_accounts'                           | 'Number of target accounts'                   | number
+  [deal_activity] 'num_contacted_notes'                              | 'Number of times contacted'                   | number
+  [hubspotmetrics] 'hs_open_amount_in_home_currency'                  | 'Open amount in home currency'                | calculation_equation
+  [dealscripted] 'hs_open_deal_create_date'                         | 'Open deal create date'                       | calculation_equation
+  [dealinformation] 'opportunity'                                      | 'Opportunity'                                 | select  options: ['Yes', 'No']
+  [dealinformation] 'order_form_review_status'                         | 'Order Form Review Status'                    | select  options: ['Yes', 'In Progress', 'No']
+  [analyticsinformation] 'hs_analytics_source'                              | 'Original Traffic Source'                     | select  options: ['ORGANIC_SEARCH', 'PAID_SEARCH', 'EMAIL_MARKETING', 'SOCIAL_MEDIA', 'REFERRALS', 'OTHER_CAMPAIGNS', 'DIRECT_TRAFFIC', 'OFFLINE', 'PAID_SOCIAL', 'AI_REFERRALS']
+  [analyticsinformation] 'hs_analytics_source_data_1'                       | 'Original Traffic Source Drill-Down 1'        | text
+  [analyticsinformation] 'hs_analytics_source_data_2'                       | 'Original Traffic Source Drill-Down 2'        | text
+  [dealinformation] 'other_documents_asked'                            | 'Other documents asked'                       | checkbox  options: ['SOC2', 'GDPR compliance', 'VPAT', 'Trust Centre', 'Privacy Policy', 'Terms of Services', 'Others']
+  [deal_activity] 'hubspot_owner_assigneddate'                       | 'Owner assigned date'                         | date
+  [dealinformation] 'hs_owning_teams'                                  | 'Owning Teams'                                | checkbox
+  [dealinformation] 'hs_partner_tech_win'                              | 'Partner Tech Win'                            | select  options: ['in_progress', 'Yes', 'No', 'Incomplete']
+  [dealinformation] 'hs_was_imported'                                  | 'Performed in an import'                      | booleancheckbox  options: ['true', 'false']
+  [dealinformation] 'hs_pinned_engagement_id'                          | 'Pinned Engagement ID'                        | number
+  [deal_activity] 'pipeline'                                         | 'Pipeline'                                    | select
+  [dealinformation] 'poc_linkedin'                                     | 'POC LinkedIn'                                | text
+  [dealinformation] 'poc_name'                                         | 'POC Name'                                    | text
+  [dealinformation] 'poc_title'                                        | 'POC Title'                                   | text
+  [close_&_pricing] 'pricing_plan'                                     | 'Pricing Plan'                                | select  options: ['Startup', 'Pro', 'Business', 'Enterprise', 'Custom']
+  [dealinformation] 'hs_primary_associated_company'                    | 'Primary Associated Company'                  | calculation_rollup
+  [deal_activity] 'hs_primary_quote_data_updated_at'                 | 'Primary quote data updated at'               | date
+  [dealinformation] 'hs_priority'                                      | 'Priority'                                    | select  options: ['low', 'medium', 'high']
+  [dealinformation] 'push_followup_date'                               | 'Push Follow-up Date'                         | date
+  [dealinformation] 'reactivated'                                      | 'Reactivated?'                                | select  options: ['Yes', 'No']
+  [dealinformation] 'hs_read_only'                                     | 'Read only object'                            | booleancheckbox  options: ['true', 'false']
+  [stage_management] 'reason_for_noshow'                                | 'Reason for No-Show'                          | text
+  [dealinformation] 'hs_sales_email_last_replied'                      | 'Recent Sales Email Replied Date'             | date
+  [dealinformation] 'hs_object_source'                                 | 'Record creation source'                      | text
+  [dealinformation] 'hs_object_source_id'                              | 'Record creation source ID'                   | text
+  [dealinformation] 'hs_object_source_user_id'                         | 'Record creation source user ID'              | number
+  [dealinformation] 'hs_object_id'                                     | 'Record ID'                                   | number
+  [dealinformation] 'hs_object_source_label'                           | 'Record source'                               | select
+  [dealinformation] 'hs_object_source_detail_1'                        | 'Record source detail 1'                      | text
+  [dealinformation] 'hs_object_source_detail_2'                        | 'Record source detail 2'                      | text
+  [dealinformation] 'hs_object_source_detail_3'                        | 'Record source detail 3'                      | text
+  [stage_management] 'reschedule_date'                                  | 'Reschedule Date'                             | date
+  [dealinformation] 'sdr_owner'                                        | 'SDR Owner'                                   | select  options: ['Nitin', 'Akhil', 'Muni', 'Ads', 'Inbound', 'Referral', 'Outbound - Old', 'Sanika', 'Aaryan', 'Akash']
+  [opportunity_&_trial] 'second_meeting_booked'                            | 'Second Meeting Booked?'                      | select  options: ['Yes', 'No']
+  [opportunity_&_trial] 'second_meeting_date'                              | 'Second Meeting Date'                         | date
+  [dealinformation] 'hs_shared_team_ids'                               | 'Shared teams'                                | checkbox
+  [dealinformation] 'hs_shared_user_ids'                               | 'Shared users'                                | checkbox
+  [dealinformation] 'hs_source_object_id'                              | 'Source Object ID'                            | number
+  [deal_activity] 'engagements_last_meeting_booked_source'           | 'Source of last booking in meetings tool'     | text
+  [dealinformation] 'source_of_meeting'                                | 'Source of Meeting'                           | text
+  [dealinformation] 'hs_submission_idempotent_id'                      | 'Submission Idempotent ID'                    | text
+  [dealinformation] 'hs_predicted_amount'                              | 'The predicted deal amount'                   | calculation_equation
+  [dealinformation] 'hs_predicted_amount_in_home_currency'             | "The predicted deal amount in your company's currency" | calculation_equation
+  [dealstages] 'hs_v2_time_in_current_stage'                      | 'Time in current stage'                       | calculation_equation
+  [deal_revenue] 'hs_tcv'                                           | 'Total contract value'                        | number
+  [opportunity_&_trial] 'trial_done'                                       | 'Trial Done?'                                 | select  options: ['Yes', 'To-Start', 'No']
+  [opportunity_&_trial] 'trial_end_date'                                   | 'Trial End Date'                              | date
+  [opportunity_&_trial] 'trial_start_date'                                 | 'Trial Start Date'                            | date
+  [opportunity_&_trial] 'trial_status'                                     | 'Trial Status'                                | select  options: ['To Start', 'Trial - Integrations', 'Trial - Ongoing [Hot]', 'Trial - Ongoing [Cold]', 'Trial - Ended [Hot]', 'Trial - Ended [Cold]', 'Data Trial', 'Trial Not Sure']
+  [dealinformation] 'hs_unique_creation_key'                           | 'Unique creation key'                         | text
+  [dealinformation] 'hs_updated_by_user_id'                            | 'Updated by user ID'                          | number
+  [dealinformation] 'hs_user_ids_of_all_notification_followers'        | 'User IDs of all notification followers'      | checkbox
+  [dealinformation] 'hs_user_ids_of_all_notification_unfollowers'      | 'User IDs of all notification unfollowers'    | checkbox
+  [dealinformation] 'hs_user_ids_of_all_owners'                        | 'User IDs of all owners'                      | checkbox
+  [dealinformation] 'deal_owner'                                       | 'V2. Deal Owner'                              | select  options: ['PA', 'PJ', 'MG', 'DB', 'CB', 'AT', 'SK', 'AC', 'HA']
+  [dealinformation] 'hs_projected_amount'                              | 'Weighted amount'                             | calculation_equation
+  [dealinformation] 'hs_projected_amount_in_home_currency'             | 'Weighted amount in company currency'         | calculation_equation
+  [hubspotmetrics] 'hs_weighted_pipeline_in_company_currency'         | 'Weighted open pipeline in company currency'  | calculation_equation
