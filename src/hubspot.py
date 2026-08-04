@@ -32,6 +32,7 @@ from src.mapping import (
     fmt_passthrough,
     fmt_capitalize,
     fmt_number,
+    normalize_domain,
 )
 
 logger = logging.getLogger(__name__)
@@ -234,7 +235,7 @@ def _get_sales_pipeline_id(token: str) -> str | None:
 
 # ── Company search ────────────────────────────────────────────────────────────
 
-def _search_companies(property_name: str, value: str, token: str, limit: int = 10) -> list[dict]:
+def _search_companies(property_name: str, value: str, token: str, limit: int = 10, operator: str = "EQ") -> list[dict]:
     """Search companies by a property. Returns list of {id, owner_id} dicts."""
     try:
         resp = _post(
@@ -242,9 +243,9 @@ def _search_companies(property_name: str, value: str, token: str, limit: int = 1
             token,
             json={
                 "filterGroups": [
-                    {"filters": [{"propertyName": property_name, "operator": "EQ", "value": value}]}
+                    {"filters": [{"propertyName": property_name, "operator": operator, "value": value}]}
                 ],
-                "properties": ["domain", "hubspot_owner_id"],
+                "properties": ["domain", "name", "hubspot_owner_id"],
                 "limit": limit,
             },
         )
@@ -446,10 +447,17 @@ def get_row_data(domain: str) -> dict | None:
     try:
         sales_pipeline_id = _get_sales_pipeline_id(token)
 
-        # 1. Company search by domain only (domain column A is authoritative)
+        # 1. Company search by domain, with name fallback
         candidates = _search_companies("domain", domain, token, limit=5)
         if not candidates:
-            logger.info("HubSpot: no company found for domain %r", domain)
+            # Fallback: search by company name derived from the domain
+            # e.g. "clickhouse.com" → "clickhouse", "new-relic.com" → "new-relic"
+            base_name = normalize_domain(domain).split(".")[0].replace("-", " ")
+            if base_name:
+                logger.info("HubSpot: domain search found nothing for %r — trying name %r", domain, base_name)
+                candidates = _search_companies("name", base_name, token, limit=10, operator="CONTAINS_TOKEN")
+        if not candidates:
+            logger.info("HubSpot: no company found for domain %r (tried domain + name)", domain)
             return None
 
         # 2. Pick best company and its best deal
