@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=ubuntu
+User=rashuraj
 WorkingDirectory=/opt/services/hubspot-sheet-sync
 EnvironmentFile=/opt/services/hubspot-sheet-sync/.env
 ExecStart=/opt/services/hubspot-sheet-sync/.venv/bin/uvicorn src.api:app --host 127.0.0.1 --port 8008
