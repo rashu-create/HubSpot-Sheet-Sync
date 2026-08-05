@@ -447,15 +447,24 @@ def get_row_data(domain: str) -> dict | None:
     try:
         sales_pipeline_id = _get_sales_pipeline_id(token)
 
-        # 1. Company search by domain, with name fallback
-        candidates = _search_companies("domain", domain, token, limit=5)
-        if not candidates:
-            # Fallback: search by company name derived from the domain
-            # e.g. "clickhouse.com" → "clickhouse", "new-relic.com" → "new-relic"
-            base_name = normalize_domain(domain).split(".")[0].replace("-", " ")
-            if base_name:
-                logger.info("HubSpot: domain search found nothing for %r — trying name %r", domain, base_name)
-                candidates = _search_companies("name", base_name, token, limit=10, operator="CONTAINS_TOKEN")
+        # 1. Company search: domain first, then merge with name search
+        # We always try both so that cases like clickhouse.com (domain → company A with
+        # no deal; name "clickhouse" → company B with the actual deal) are handled.
+        candidates_by_domain = _search_companies("domain", domain, token, limit=5)
+
+        base_name = normalize_domain(domain).split(".")[0].replace("-", " ")
+        candidates_by_name: list[dict] = []
+        if base_name:
+            candidates_by_name = _search_companies("name", base_name, token, limit=10, operator="CONTAINS_TOKEN")
+
+        # Merge, preferring domain-matched IDs (deduplicate by company ID)
+        seen_ids: set[str] = set()
+        candidates: list[dict] = []
+        for c in candidates_by_domain + candidates_by_name:
+            if c["id"] not in seen_ids:
+                seen_ids.add(c["id"])
+                candidates.append(c)
+
         if not candidates:
             logger.info("HubSpot: no company found for domain %r (tried domain + name)", domain)
             return None
