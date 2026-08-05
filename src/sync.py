@@ -91,7 +91,13 @@ def run_sync(dry_run: bool = False) -> RunResult:
         rows_total = len(domain_rows)
         logger.info("Pipeline has %d rows to process", rows_total)
 
-        # 3. Process each row
+        # 3. Pre-build deal map (deals → companies → domains) for reliable lookup
+        try:
+            hubspot.prebuild_deal_map()
+        except Exception as exc:
+            logger.warning("Deal map pre-build failed (will fall back to company search): %s", exc)
+
+        # 4. Process each row
         for row_idx, domain in domain_rows:
             try:
                 row_data = hubspot.get_row_data(domain)
@@ -119,7 +125,7 @@ def run_sync(dry_run: bool = False) -> RunResult:
             # Per-row floor sleep (rate limiter handles per-API-call)
             time.sleep(0.15)
 
-        # 4. Write to sheet
+        # 5. Write to sheet
         if not dry_run:
             if updates:
                 logger.info("Writing %d rows to sheet...", len(updates))

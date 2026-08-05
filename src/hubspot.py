@@ -45,6 +45,8 @@ _STAGE_LABEL_CACHE: dict[str, str] = {}
 _AE_OWNER_IDS: set[str] = set()
 _AE_LOADED: bool = False
 _OWNER_NAME_CACHE: dict[str, str] = {}   # owner_id → display name
+# Deal map: domain → deal entry; None means not yet built
+_DOMAIN_DEAL_MAP: dict[str, dict] | None = None
 
 _SALES_PIPELINE_LABEL = "Sales Pipeline"
 
@@ -263,6 +265,171 @@ def _search_companies(property_name: str, value: str, token: str, limit: int = 1
     ]
 
 
+# ── Deal map pre-build (deal-first lookup) ────────────────────────────────────
+
+def _fetch_all_pipeline_deals(token: str, pipeline_id: str) -> list[dict]:
+    """Page through all deals in the given pipeline. Returns list of deal dicts."""
+    all_deals: list[dict] = []
+    after: str | None = None
+
+    for _ in range(50):  # safety cap
+        body: dict = {
+            "filterGroups": [
+                {"filters": [{"propertyName": "pipeline", "operator": "EQ", "value": pipeline_id}]}
+            ],
+            "properties": ["hubspot_owner_id", "createdate", "dealstage", "pipeline"],
+            "limit": 100,
+        }
+        if after:
+            body["after"] = after
+
+        try:
+            resp = _post(f"{_BASE}/crm/v3/objects/deals/search", token, json=body)
+        except Exception as exc:
+            logger.warning("Deal search error: %s", exc)
+            break
+
+        if resp.status_code != 200:
+            logger.warning("Deal search HTTP %s", resp.status_code)
+            break
+
+        data = resp.json()
+        all_deals.extend(data.get("results", []))
+        after = data.get("paging", {}).get("next", {}).get("after")
+        if not after:
+            break
+
+    return all_deals
+
+
+def _batch_get_deal_company_associations(token: str, deals: list[dict]) -> dict[str, list[str]]:
+    """Return {deal_id: [company_id, ...]} via v4 batch association API."""
+    deal_to_companies: dict[str, list[str]] = {}
+
+    for i in range(0, len(deals), 100):
+        batch = deals[i : i + 100]
+        inputs = [{"id": d["id"]} for d in batch]
+
+        try:
+            resp = _post(
+                f"{_BASE}/crm/v4/associations/deals/companies/batch/read",
+                token,
+                json={"inputs": inputs},
+            )
+        except Exception as exc:
+            logger.warning("Batch deal→company association error: %s", exc)
+            continue
+
+        if resp.status_code not in (200, 207):
+            logger.warning("Batch deal→company association HTTP %s", resp.status_code)
+            continue
+
+        for result in resp.json().get("results", []):
+            deal_id = str(result.get("from", {}).get("id", ""))
+            company_ids = [str(a["toObjectId"]) for a in result.get("to", [])]
+            if deal_id:
+                deal_to_companies[deal_id] = company_ids
+
+    return deal_to_companies
+
+
+def _batch_get_company_domains(token: str, company_ids: list[str]) -> dict[str, str]:
+    """Return {company_id: domain_str} via v3 batch company read."""
+    result: dict[str, str] = {}
+
+    for i in range(0, len(company_ids), 100):
+        batch = company_ids[i : i + 100]
+
+        try:
+            resp = _post(
+                f"{_BASE}/crm/v3/objects/companies/batch/read",
+                token,
+                json={
+                    "inputs": [{"id": cid} for cid in batch],
+                    "properties": ["domain", "name"],
+                },
+            )
+        except Exception as exc:
+            logger.warning("Batch company domain read error: %s", exc)
+            continue
+
+        if resp.status_code not in (200, 207):
+            logger.warning("Batch company domain read HTTP %s", resp.status_code)
+            continue
+
+        for company in resp.json().get("results", []):
+            cid = str(company["id"])
+            domain = (company.get("properties", {}).get("domain") or "").lower().strip()
+            result[cid] = domain
+
+    return result
+
+
+def prebuild_deal_map() -> None:
+    """Fetch all Sales Pipeline deals and build a domain→deal map in _DOMAIN_DEAL_MAP.
+
+    Rebuilds unconditionally on every call (called once per sync run).
+    After this runs, get_row_data() uses the map as the primary lookup, with
+    the company-search path as a fallback for domains not in the map.
+    """
+    global _DOMAIN_DEAL_MAP
+    _DOMAIN_DEAL_MAP = {}
+
+    token = _token()
+    if not token:
+        logger.warning("HUBSPOT_API_TOKEN not set — skipping deal map build")
+        return
+
+    pipeline_id = _get_sales_pipeline_id(token)
+    if not pipeline_id:
+        logger.warning("No Sales Pipeline found — skipping deal map build")
+        return
+
+    all_deals = _fetch_all_pipeline_deals(token, pipeline_id)
+    logger.info("Deal map: %d deals found in Sales Pipeline", len(all_deals))
+    if not all_deals:
+        return
+
+    deal_to_companies = _batch_get_deal_company_associations(token, all_deals)
+
+    unique_company_ids = list({cid for cids in deal_to_companies.values() for cid in cids})
+    company_domain_map = _batch_get_company_domains(token, unique_company_ids)
+
+    domain_map: dict[str, dict] = {}
+
+    for deal in all_deals:
+        deal_id = deal["id"]
+        props = deal.get("properties", {})
+        owner = props.get("hubspot_owner_id")
+        createdate = props.get("createdate") or ""
+
+        for cid in deal_to_companies.get(deal_id, []):
+            domain = company_domain_map.get(cid, "")
+            if not domain:
+                continue
+
+            entry = {
+                "deal_id": deal_id,
+                "company_id": cid,
+                "owner_id": owner,
+                "deal_stage": props.get("dealstage") or "",
+                "createdate": createdate,
+            }
+
+            existing = domain_map.get(domain)
+            if existing is None:
+                domain_map[domain] = entry
+            else:
+                # Prefer AE-owned, then more recent
+                new_score = (_is_ae(owner), createdate)
+                old_score = (_is_ae(existing.get("owner_id")), existing.get("createdate", ""))
+                if new_score > old_score:
+                    domain_map[domain] = entry
+
+    _DOMAIN_DEAL_MAP = domain_map
+    logger.info("Deal map built: %d company domains indexed", len(domain_map))
+
+
 # ── Deal selection for a company ──────────────────────────────────────────────
 
 def _get_best_deal_for_company(company_id: str, token: str, sales_pipeline_id: str | None) -> dict | None:
@@ -286,6 +453,7 @@ def _get_best_deal_for_company(company_id: str, token: str, sales_pipeline_id: s
 
     results = resp.json().get("results", [])
     if not results:
+        logger.debug("Company %s has no deal associations", company_id)
         return None
 
     deal_ids = [r["toObjectId"] for r in results]
@@ -317,7 +485,11 @@ def _get_best_deal_for_company(company_id: str, token: str, sales_pipeline_id: s
         if sales_deals:
             deals = sales_deals
         else:
-            logger.info("No Sales Pipeline deals for company %s", company_id)
+            logger.debug(
+                "No Sales Pipeline deals for company %s (pipelines found: %s)",
+                company_id,
+                [d.get("properties", {}).get("pipeline") for d in deals],
+            )
             return None
 
     # Prefer AE-owned deals, then most recent
@@ -446,47 +618,58 @@ def get_row_data(domain: str) -> dict | None:
 
     try:
         sales_pipeline_id = _get_sales_pipeline_id(token)
+        normalized = normalize_domain(domain)
 
-        # 1. Company search: domain first, then merge with name search
-        # We always try both so that cases like clickhouse.com (domain → company A with
-        # no deal; name "clickhouse" → company B with the actual deal) are handled.
-        candidates_by_domain = _search_companies("domain", domain, token, limit=5)
+        deal_info: dict | None = None
+        company_id: str | None = None
+        fallback_owner_id: str | None = None
 
-        base_name = normalize_domain(domain).split(".")[0].replace("-", " ")
-        candidates_by_name: list[dict] = []
-        if base_name:
-            candidates_by_name = _search_companies("name", base_name, token, limit=10, operator="CONTAINS_TOKEN")
+        # 1a. Fast path: pre-built deal map (deal-first, most reliable)
+        if _DOMAIN_DEAL_MAP is not None:
+            map_hit = _DOMAIN_DEAL_MAP.get(normalized)
+            if map_hit:
+                company_id = map_hit["company_id"]
+                deal_info = {
+                    "deal_id": map_hit["deal_id"],
+                    "owner_id": map_hit.get("owner_id"),
+                    "deal_stage": map_hit.get("deal_stage", ""),
+                    "createdate": map_hit.get("createdate", ""),
+                }
 
-        # Merge, preferring domain-matched IDs (deduplicate by company ID)
-        seen_ids: set[str] = set()
-        candidates: list[dict] = []
-        for c in candidates_by_domain + candidates_by_name:
-            if c["id"] not in seen_ids:
-                seen_ids.add(c["id"])
-                candidates.append(c)
+        # 1b. Slow path: company search + deal lookup (fallback)
+        if deal_info is None:
+            candidates_by_domain = _search_companies("domain", domain, token, limit=5)
+            base_name = normalized.split(".")[0].replace("-", " ")
+            candidates_by_name: list[dict] = []
+            if base_name:
+                candidates_by_name = _search_companies(
+                    "name", base_name, token, limit=10, operator="CONTAINS_TOKEN"
+                )
 
-        if not candidates:
-            logger.info("HubSpot: no company found for domain %r (tried domain + name)", domain)
-            return None
+            seen_ids: set[str] = set()
+            candidates: list[dict] = []
+            for c in candidates_by_domain + candidates_by_name:
+                if c["id"] not in seen_ids:
+                    seen_ids.add(c["id"])
+                    candidates.append(c)
 
-        # 2. Pick best company and its best deal
-        company_id, fallback_owner_id, deal_info = _pick_best_company(
-            candidates, token, sales_pipeline_id
-        )
+            if not candidates:
+                logger.info("HubSpot: no company found for domain %r", domain)
+                return None
 
-        if not company_id:
-            logger.info("HubSpot: could not pick a company for domain %r", domain)
-            return None
+            company_id, fallback_owner_id, deal_info = _pick_best_company(
+                candidates, token, sales_pipeline_id
+            )
 
-        if not deal_info:
-            logger.info("HubSpot: company found for %r but no Sales Pipeline deal", domain)
-            return None
+            if not company_id or not deal_info:
+                logger.info("HubSpot: no Sales Pipeline deal for domain %r", domain)
+                return None
 
         deal_id = deal_info["deal_id"]
 
-        # 3. Fetch full properties
+        # 2. Fetch full properties
         deal_props = fetch_deal_properties(deal_id, token)
-        company_props = fetch_company_properties(company_id, token)
+        company_props = fetch_company_properties(company_id, token) if company_id else {}
 
         # 4. Resolve owner name (AE filter applies)
         deal_owner_id = deal_props.get("hubspot_owner_id") or deal_info.get("owner_id")
@@ -546,9 +729,10 @@ def get_row_data(domain: str) -> dict | None:
 
 def clear_cache() -> None:
     """Clear all process-lifetime caches (useful between test runs)."""
-    global _AE_LOADED
+    global _AE_LOADED, _DOMAIN_DEAL_MAP
     _PIPELINE_CACHE.clear()
     _STAGE_LABEL_CACHE.clear()
     _AE_OWNER_IDS.clear()
     _AE_LOADED = False
     _OWNER_NAME_CACHE.clear()
+    _DOMAIN_DEAL_MAP = None
