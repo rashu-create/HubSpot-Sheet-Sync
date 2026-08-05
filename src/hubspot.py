@@ -17,6 +17,7 @@ Env vars:
 
 import logging
 import os
+import re
 import threading
 import time
 
@@ -45,8 +46,9 @@ _STAGE_LABEL_CACHE: dict[str, str] = {}
 _AE_OWNER_IDS: set[str] = set()
 _AE_LOADED: bool = False
 _OWNER_NAME_CACHE: dict[str, str] = {}   # owner_id → display name
-# Deal map: domain → deal entry; None means not yet built
+# Deal maps: domain → deal entry, name-key → deal entry; None means not yet built
 _DOMAIN_DEAL_MAP: dict[str, dict] | None = None
+_NAME_DEAL_MAP: dict[str, dict] | None = None
 
 _SALES_PIPELINE_LABEL = "Sales Pipeline"
 
@@ -333,9 +335,9 @@ def _batch_get_deal_company_associations(token: str, deals: list[dict]) -> dict[
     return deal_to_companies
 
 
-def _batch_get_company_domains(token: str, company_ids: list[str]) -> dict[str, str]:
-    """Return {company_id: domain_str} via v3 batch company read."""
-    result: dict[str, str] = {}
+def _batch_get_company_info(token: str, company_ids: list[str]) -> dict[str, dict]:
+    """Return {company_id: {"domain": str, "name": str}} via v3 batch company read."""
+    result: dict[str, dict] = {}
 
     for i in range(0, len(company_ids), 100):
         batch = company_ids[i : i + 100]
@@ -350,30 +352,56 @@ def _batch_get_company_domains(token: str, company_ids: list[str]) -> dict[str, 
                 },
             )
         except Exception as exc:
-            logger.warning("Batch company domain read error: %s", exc)
+            logger.warning("Batch company info read error: %s", exc)
             continue
 
         if resp.status_code not in (200, 207):
-            logger.warning("Batch company domain read HTTP %s", resp.status_code)
+            logger.warning("Batch company info read HTTP %s", resp.status_code)
             continue
 
         for company in resp.json().get("results", []):
             cid = str(company["id"])
-            domain = (company.get("properties", {}).get("domain") or "").lower().strip()
-            result[cid] = domain
+            props = company.get("properties", {})
+            result[cid] = {
+                "domain": (props.get("domain") or "").lower().strip(),
+                "name": (props.get("name") or "").strip(),
+            }
 
     return result
 
 
+def _name_keys(name: str) -> list[str]:
+    """Return 1-2 name keys for indexing a company by name.
+
+    Keys are stripped of all non-alphanumeric characters (lowercase).
+    We emit the full cleaned name AND, if multi-word, the first word cleaned
+    (≥4 chars) — so "ClickHouse, Inc." → ["clickhouseinc", "clickhouse"].
+    """
+    if not name:
+        return []
+    full = re.sub(r"[^a-z0-9]", "", name.lower())
+    keys = [full] if full else []
+    parts = name.split()
+    if len(parts) > 1:
+        first = re.sub(r"[^a-z0-9]", "", parts[0].lower())
+        if len(first) >= 4 and first != full:
+            keys.append(first)
+    return keys
+
+
 def prebuild_deal_map() -> None:
-    """Fetch all Sales Pipeline deals and build a domain→deal map in _DOMAIN_DEAL_MAP.
+    """Fetch all Sales Pipeline deals and build domain + name lookup maps.
 
     Rebuilds unconditionally on every call (called once per sync run).
-    After this runs, get_row_data() uses the map as the primary lookup, with
-    the company-search path as a fallback for domains not in the map.
+    After this runs, get_row_data() uses:
+      1. _DOMAIN_DEAL_MAP — domain → deal entry (for companies with a domain set)
+      2. _NAME_DEAL_MAP   — cleaned name → deal entry (fallback for companies with
+                            no domain, keyed by full cleaned name and first word)
+    The company-search API path is the last-resort fallback.
     """
-    global _DOMAIN_DEAL_MAP
+    global _DOMAIN_DEAL_MAP, _NAME_DEAL_MAP
     _DOMAIN_DEAL_MAP = {}
+    _NAME_DEAL_MAP = {}
 
     token = _token()
     if not token:
@@ -393,9 +421,10 @@ def prebuild_deal_map() -> None:
     deal_to_companies = _batch_get_deal_company_associations(token, all_deals)
 
     unique_company_ids = list({cid for cids in deal_to_companies.values() for cid in cids})
-    company_domain_map = _batch_get_company_domains(token, unique_company_ids)
+    company_info_map = _batch_get_company_info(token, unique_company_ids)
 
     domain_map: dict[str, dict] = {}
+    name_map: dict[str, dict] = {}
 
     for deal in all_deals:
         deal_id = deal["id"]
@@ -404,9 +433,9 @@ def prebuild_deal_map() -> None:
         createdate = props.get("createdate") or ""
 
         for cid in deal_to_companies.get(deal_id, []):
-            domain = company_domain_map.get(cid, "")
-            if not domain:
-                continue
+            info = company_info_map.get(cid, {})
+            domain = info.get("domain", "")
+            name = info.get("name", "")
 
             entry = {
                 "deal_id": deal_id,
@@ -416,18 +445,28 @@ def prebuild_deal_map() -> None:
                 "createdate": createdate,
             }
 
-            existing = domain_map.get(domain)
-            if existing is None:
-                domain_map[domain] = entry
-            else:
-                # Prefer AE-owned, then more recent
-                new_score = (_is_ae(owner), createdate)
-                old_score = (_is_ae(existing.get("owner_id")), existing.get("createdate", ""))
-                if new_score > old_score:
-                    domain_map[domain] = entry
+            def _upsert(mapping: dict, key: str, e: dict) -> None:
+                existing = mapping.get(key)
+                if existing is None:
+                    mapping[key] = e
+                else:
+                    new_s = (_is_ae(e.get("owner_id")), e.get("createdate", ""))
+                    old_s = (_is_ae(existing.get("owner_id")), existing.get("createdate", ""))
+                    if new_s > old_s:
+                        mapping[key] = e
+
+            if domain:
+                _upsert(domain_map, domain, entry)
+
+            for nk in _name_keys(name):
+                _upsert(name_map, nk, entry)
 
     _DOMAIN_DEAL_MAP = domain_map
-    logger.info("Deal map built: %d company domains indexed", len(domain_map))
+    _NAME_DEAL_MAP = name_map
+    logger.info(
+        "Deal map built: %d domains, %d name keys indexed",
+        len(domain_map), len(name_map),
+    )
 
 
 # ── Deal selection for a company ──────────────────────────────────────────────
@@ -624,7 +663,7 @@ def get_row_data(domain: str) -> dict | None:
         company_id: str | None = None
         fallback_owner_id: str | None = None
 
-        # 1a. Fast path: pre-built deal map (deal-first, most reliable)
+        # 1a. Fast path: pre-built domain map (company has a domain set in HubSpot)
         if _DOMAIN_DEAL_MAP is not None:
             map_hit = _DOMAIN_DEAL_MAP.get(normalized)
             if map_hit:
@@ -636,7 +675,22 @@ def get_row_data(domain: str) -> dict | None:
                     "createdate": map_hit.get("createdate", ""),
                 }
 
-        # 1b. Slow path: company search + deal lookup (fallback)
+        # 1b. Name-based map (company has no domain set — match by company name)
+        if deal_info is None and _NAME_DEAL_MAP is not None:
+            base = normalized.split(".")[0]
+            name_lookup = re.sub(r"[^a-z0-9]", "", base.lower())
+            if len(name_lookup) >= 3:
+                map_hit = _NAME_DEAL_MAP.get(name_lookup)
+                if map_hit:
+                    company_id = map_hit["company_id"]
+                    deal_info = {
+                        "deal_id": map_hit["deal_id"],
+                        "owner_id": map_hit.get("owner_id"),
+                        "deal_stage": map_hit.get("deal_stage", ""),
+                        "createdate": map_hit.get("createdate", ""),
+                    }
+
+        # 1c. Slow path: company search + deal lookup (last-resort fallback)
         if deal_info is None:
             candidates_by_domain = _search_companies("domain", domain, token, limit=5)
             base_name = normalized.split(".")[0].replace("-", " ")
@@ -729,10 +783,11 @@ def get_row_data(domain: str) -> dict | None:
 
 def clear_cache() -> None:
     """Clear all process-lifetime caches (useful between test runs)."""
-    global _AE_LOADED, _DOMAIN_DEAL_MAP
+    global _AE_LOADED, _DOMAIN_DEAL_MAP, _NAME_DEAL_MAP
     _PIPELINE_CACHE.clear()
     _STAGE_LABEL_CACHE.clear()
     _AE_OWNER_IDS.clear()
     _AE_LOADED = False
     _OWNER_NAME_CACHE.clear()
     _DOMAIN_DEAL_MAP = None
+    _NAME_DEAL_MAP = None
