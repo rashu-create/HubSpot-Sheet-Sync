@@ -46,9 +46,10 @@ _STAGE_LABEL_CACHE: dict[str, str] = {}
 _AE_OWNER_IDS: set[str] = set()
 _AE_LOADED: bool = False
 _OWNER_NAME_CACHE: dict[str, str] = {}   # owner_id → display name
-# Deal maps: domain → deal entry, name-key → deal entry; None means not yet built
-_DOMAIN_DEAL_MAP: dict[str, dict] | None = None
-_NAME_DEAL_MAP: dict[str, dict] | None = None
+# Deal maps; None means not yet built for this sync run
+_DOMAIN_DEAL_MAP: dict[str, dict] | None = None   # company domain → deal entry
+_NAME_DEAL_MAP: dict[str, dict] | None = None     # cleaned company name → deal entry
+_DEAL_NAME_MAP: dict[str, dict] | None = None     # cleaned deal name → deal entry
 
 _SALES_PIPELINE_LABEL = "Sales Pipeline"
 
@@ -279,7 +280,7 @@ def _fetch_all_pipeline_deals(token: str, pipeline_id: str) -> list[dict]:
             "filterGroups": [
                 {"filters": [{"propertyName": "pipeline", "operator": "EQ", "value": pipeline_id}]}
             ],
-            "properties": ["hubspot_owner_id", "createdate", "dealstage", "pipeline"],
+            "properties": ["hubspot_owner_id", "createdate", "dealstage", "pipeline", "dealname"],
             "limit": 100,
         }
         if after:
@@ -370,6 +371,21 @@ def _batch_get_company_info(token: str, company_ids: list[str]) -> dict[str, dic
     return result
 
 
+def _get_deal_company_id(deal_id: str, token: str) -> str | None:
+    """Return the first company ID associated with a deal, or None."""
+    try:
+        resp = _get(
+            f"{_BASE}/crm/v4/objects/deals/{deal_id}/associations/companies",
+            token,
+        )
+    except Exception:
+        return None
+    if resp.status_code != 200:
+        return None
+    results = resp.json().get("results", [])
+    return str(results[0]["toObjectId"]) if results else None
+
+
 def _name_keys(name: str) -> list[str]:
     """Return 1-2 name keys for indexing a company by name.
 
@@ -399,9 +415,10 @@ def prebuild_deal_map() -> None:
                             no domain, keyed by full cleaned name and first word)
     The company-search API path is the last-resort fallback.
     """
-    global _DOMAIN_DEAL_MAP, _NAME_DEAL_MAP
+    global _DOMAIN_DEAL_MAP, _NAME_DEAL_MAP, _DEAL_NAME_MAP
     _DOMAIN_DEAL_MAP = {}
     _NAME_DEAL_MAP = {}
+    _DEAL_NAME_MAP = {}
 
     token = _token()
     if not token:
@@ -425,14 +442,28 @@ def prebuild_deal_map() -> None:
 
     domain_map: dict[str, dict] = {}
     name_map: dict[str, dict] = {}
+    deal_name_map: dict[str, dict] = {}
+
+    def _upsert(mapping: dict, key: str, e: dict) -> None:
+        existing = mapping.get(key)
+        if existing is None:
+            mapping[key] = e
+        else:
+            new_s = (_is_ae(e.get("owner_id")), e.get("createdate", ""))
+            old_s = (_is_ae(existing.get("owner_id")), existing.get("createdate", ""))
+            if new_s > old_s:
+                mapping[key] = e
 
     for deal in all_deals:
         deal_id = deal["id"]
         props = deal.get("properties", {})
         owner = props.get("hubspot_owner_id")
         createdate = props.get("createdate") or ""
+        dealname = props.get("dealname") or ""
 
-        for cid in deal_to_companies.get(deal_id, []):
+        associated_companies = deal_to_companies.get(deal_id, [])
+
+        for cid in associated_companies:
             info = company_info_map.get(cid, {})
             domain = info.get("domain", "")
             name = info.get("name", "")
@@ -445,27 +476,28 @@ def prebuild_deal_map() -> None:
                 "createdate": createdate,
             }
 
-            def _upsert(mapping: dict, key: str, e: dict) -> None:
-                existing = mapping.get(key)
-                if existing is None:
-                    mapping[key] = e
-                else:
-                    new_s = (_is_ae(e.get("owner_id")), e.get("createdate", ""))
-                    old_s = (_is_ae(existing.get("owner_id")), existing.get("createdate", ""))
-                    if new_s > old_s:
-                        mapping[key] = e
-
             if domain:
                 _upsert(domain_map, domain, entry)
-
             for nk in _name_keys(name):
                 _upsert(name_map, nk, entry)
 
+        # Deal name map — use company_id=None for orphan deals; resolved at lookup time
+        for dnk in _name_keys(dealname):
+            orphan_entry = {
+                "deal_id": deal_id,
+                "company_id": associated_companies[0] if associated_companies else None,
+                "owner_id": owner,
+                "deal_stage": props.get("dealstage") or "",
+                "createdate": createdate,
+            }
+            _upsert(deal_name_map, dnk, orphan_entry)
+
     _DOMAIN_DEAL_MAP = domain_map
     _NAME_DEAL_MAP = name_map
+    _DEAL_NAME_MAP = deal_name_map
     logger.info(
-        "Deal map built: %d domains, %d name keys indexed",
-        len(domain_map), len(name_map),
+        "Deal map built: %d domains, %d company name keys, %d deal name keys indexed",
+        len(domain_map), len(name_map), len(deal_name_map),
     )
 
 
@@ -690,7 +722,25 @@ def get_row_data(domain: str) -> dict | None:
                         "createdate": map_hit.get("createdate", ""),
                     }
 
-        # 1c. Slow path: company search + deal lookup (last-resort fallback)
+        # 1c. Deal name map (for orphan deals with no company association)
+        if deal_info is None and _DEAL_NAME_MAP is not None:
+            base = normalized.split(".")[0]
+            name_lookup = re.sub(r"[^a-z0-9]", "", base.lower())
+            if len(name_lookup) >= 3:
+                map_hit = _DEAL_NAME_MAP.get(name_lookup)
+                if map_hit:
+                    deal_info = {
+                        "deal_id": map_hit["deal_id"],
+                        "owner_id": map_hit.get("owner_id"),
+                        "deal_stage": map_hit.get("deal_stage", ""),
+                        "createdate": map_hit.get("createdate", ""),
+                    }
+                    company_id = map_hit.get("company_id")
+                    # If company_id wasn't stored (true orphan), try to fetch it now
+                    if not company_id:
+                        company_id = _get_deal_company_id(map_hit["deal_id"], token)
+
+        # 1d. Company search + deal lookup (last-resort fallback)
         if deal_info is None:
             candidates_by_domain = _search_companies("domain", domain, token, limit=5)
             base_name = normalized.split(".")[0].replace("-", " ")
@@ -783,7 +833,7 @@ def get_row_data(domain: str) -> dict | None:
 
 def clear_cache() -> None:
     """Clear all process-lifetime caches (useful between test runs)."""
-    global _AE_LOADED, _DOMAIN_DEAL_MAP, _NAME_DEAL_MAP
+    global _AE_LOADED, _DOMAIN_DEAL_MAP, _NAME_DEAL_MAP, _DEAL_NAME_MAP
     _PIPELINE_CACHE.clear()
     _STAGE_LABEL_CACHE.clear()
     _AE_OWNER_IDS.clear()
@@ -791,3 +841,4 @@ def clear_cache() -> None:
     _OWNER_NAME_CACHE.clear()
     _DOMAIN_DEAL_MAP = None
     _NAME_DEAL_MAP = None
+    _DEAL_NAME_MAP = None
