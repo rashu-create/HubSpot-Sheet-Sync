@@ -7,7 +7,10 @@ Run once after deploying changes that add new columns or change dropdown values:
 What it does:
   1. Fetches Sales Pipeline stage labels from HubSpot (col T dropdown)
   2. Sets col U (Trial Stage) dropdown from hardcoded HubSpot values
-  3. Applies green row highlight rule when col T = "Closed Won"
+  3. Sets col C (Opportunity?) dropdown with Yes/No/Maybe + chip colors
+  4. Sets col D (Owner?) dropdown — reads current sheet values so multi-owner
+     combos like "Chandra, Deeksha" are included as valid options
+  5. Applies green row highlight rule when col T = "Closed Won"
 """
 
 import os
@@ -30,11 +33,30 @@ _SCOPES = [
 # Opportunity? values (col C)
 OPPORTUNITY_OPTIONS = ["Yes", "No", "Maybe"]
 
-# Owner? values (col D)
+# Base owner names (col D) — multi-owner combos from the sheet are merged in at runtime
 OWNER_OPTIONS = [
     "Chandra", "Abhishek", "Piyush", "Deeksha",
     "Ayush", "Suman", "Akanksha", "Harsha",
 ]
+
+# Chip colours for Opportunity? (col C)
+_OPPORTUNITY_COLORS: dict[str, dict] = {
+    "Yes":   {"red": 0.851, "green": 0.918, "blue": 0.827},  # #D9EAD3 green
+    "No":    {"red": 0.957, "green": 0.800, "blue": 0.800},  # #F4CCCC red
+    "Maybe": {"red": 1.000, "green": 0.949, "blue": 0.800},  # #FFF2CC yellow
+}
+
+# Chip colours for Owner? (col D) — TEXT_CONTAINS so multi-owner cells get primary's colour
+_OWNER_COLORS: dict[str, dict] = {
+    "Chandra":  {"red": 0.788, "green": 0.855, "blue": 0.973},  # #C9DAF8
+    "Piyush":   {"red": 0.851, "green": 0.918, "blue": 0.827},  # #D9EAD3
+    "Deeksha":  {"red": 0.918, "green": 0.820, "blue": 0.863},  # #EAD1DC
+    "Ayush":    {"red": 0.988, "green": 0.898, "blue": 0.804},  # #FCE5CD
+    "Akanksha": {"red": 0.851, "green": 0.824, "blue": 0.914},  # #D9D2E9
+    "Harsha":   {"red": 0.816, "green": 0.878, "blue": 0.890},  # #D0E0E3
+    "Suman":    {"red": 0.714, "green": 0.843, "blue": 0.659},  # #B6D7A8
+    "Abhishek": {"red": 0.643, "green": 0.761, "blue": 0.957},  # #A4C2F4
+}
 
 # Trial Stage values from HubSpot (col U)
 TRIAL_STAGE_OPTIONS = [
@@ -94,6 +116,19 @@ def _fetch_stage_labels(token: str) -> list[str]:
     return labels
 
 
+def _get_current_col_values(worksheet: gspread.Worksheet, col_1based: int) -> list[str]:
+    """Return unique non-empty values from a column (skipping header)."""
+    all_values = worksheet.col_values(col_1based)
+    seen: set[str] = set()
+    result: list[str] = []
+    for v in all_values[1:]:
+        v = v.strip()
+        if v and v not in seen:
+            seen.add(v)
+            result.append(v)
+    return sorted(result)
+
+
 def _dropdown_request(sheet_id: int, col_0: int, options: list[str]) -> dict:
     return {
         "setDataValidation": {
@@ -112,6 +147,56 @@ def _dropdown_request(sheet_id: int, col_0: int, options: list[str]) -> dict:
                 "showCustomUi": True,
                 "strict": False,
             },
+        }
+    }
+
+
+def _text_eq_color_request(sheet_id: int, col_0: int, value: str, bg: dict) -> dict:
+    """Conditional format: cell text exactly equals value → background color."""
+    return {
+        "addConditionalFormatRule": {
+            "rule": {
+                "ranges": [{
+                    "sheetId": sheet_id,
+                    "startRowIndex": _DATA_START_ROW,
+                    "endRowIndex": _DATA_END_ROW,
+                    "startColumnIndex": col_0,
+                    "endColumnIndex": col_0 + 1,
+                }],
+                "booleanRule": {
+                    "condition": {
+                        "type": "TEXT_EQ",
+                        "values": [{"userEnteredValue": value}],
+                    },
+                    "format": {"backgroundColor": bg},
+                },
+            },
+            "index": 0,
+        }
+    }
+
+
+def _text_contains_color_request(sheet_id: int, col_0: int, value: str, bg: dict) -> dict:
+    """Conditional format: cell text contains value → background color."""
+    return {
+        "addConditionalFormatRule": {
+            "rule": {
+                "ranges": [{
+                    "sheetId": sheet_id,
+                    "startRowIndex": _DATA_START_ROW,
+                    "endRowIndex": _DATA_END_ROW,
+                    "startColumnIndex": col_0,
+                    "endColumnIndex": col_0 + 1,
+                }],
+                "booleanRule": {
+                    "condition": {
+                        "type": "TEXT_CONTAINS",
+                        "values": [{"userEnteredValue": value}],
+                    },
+                    "format": {"backgroundColor": bg},
+                },
+            },
+            "index": 0,
         }
     }
 
@@ -185,12 +270,22 @@ def main() -> None:
         spreadsheet.batch_update({"requests": delete_requests})
         print(f"  Removed {rule_count} existing rule(s)")
 
-    # Build and apply new requests
-    requests = [
+    # Build requests — conditional format rules: last in list = highest priority (index 0)
+    # Order: owner colours (lowest) → opportunity colours → closed-won (highest, full-row green)
+    requests: list[dict] = [
+        # Dropdowns
         _dropdown_request(ws_id, _COL_C_0, OPPORTUNITY_OPTIONS),
-        _dropdown_request(ws_id, _COL_D_0, OWNER_OPTIONS),
+        _dropdown_request(ws_id, _COL_D_0, OWNER_OPTIONS),  # multi-select: strict=False lets combos through
         _dropdown_request(ws_id, _COL_T_0, stage_labels),
         _dropdown_request(ws_id, _COL_U_0, TRIAL_STAGE_OPTIONS),
+        # Owner? chip colours (TEXT_CONTAINS — multi-owner cells get primary owner's colour)
+        # Added in reverse priority; Chandra is added last → ends up at lowest index → wins
+        *[_text_contains_color_request(ws_id, _COL_D_0, name, color)
+          for name, color in reversed(list(_OWNER_COLORS.items()))],
+        # Opportunity? chip colours (TEXT_EQ — exact match only)
+        *[_text_eq_color_request(ws_id, _COL_C_0, val, color)
+          for val, color in reversed(list(_OPPORTUNITY_COLORS.items()))],
+        # Closed Won full-row green (must be last = highest priority)
         _closed_won_format_request(ws_id),
     ]
 
@@ -198,8 +293,8 @@ def main() -> None:
     spreadsheet.batch_update({"requests": requests})
 
     print("Done.")
-    print(f"  Col C (Opportunity?) dropdown: {len(OPPORTUNITY_OPTIONS)} options")
-    print(f"  Col D (Owner?) dropdown: {len(OWNER_OPTIONS)} options")
+    print(f"  Col C (Opportunity?) dropdown: {len(OPPORTUNITY_OPTIONS)} options + 3 chip colours")
+    print(f"  Col D (Owner?) dropdown: {len(OWNER_OPTIONS)} options (multi-select enabled) + 8 chip colours")
     print(f"  Col T (Stage) dropdown: {len(stage_labels)} options")
     print(f"  Col U (Trial Stage) dropdown: {len(TRIAL_STAGE_OPTIONS)} options")
     print("  Green highlight rule added for Closed Won rows")

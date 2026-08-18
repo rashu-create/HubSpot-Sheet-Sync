@@ -675,8 +675,10 @@ def _parse_int(val: str | None) -> int:
 
 
 def _compute_owner_first_names(deal_props: dict, token: str) -> str:
-    """Return ', '-joined first names: primary AE first, then collaborators.
+    """Return comma-joined first names (no space): primary AE first, then collaborators.
 
+    No space after comma so Google Sheets chip multi-select parses each name as
+    a separate chip ("Chandra,Deeksha" → two chips, not one invalid value).
     Uses hubspot_owner_id (primary) + hs_all_owner_ids (all, incl. primary).
     Deduplicates while preserving primary-first order.
     """
@@ -698,7 +700,7 @@ def _compute_owner_first_names(deal_props: dict, token: str) -> str:
         if full_name:
             first_names.append(full_name.split()[0])
 
-    return ", ".join(first_names)
+    return ",".join(first_names)
 
 
 # ── Main entry point ──────────────────────────────────────────────────────────
