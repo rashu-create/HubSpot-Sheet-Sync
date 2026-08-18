@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
+<div class="page-wrapper">
 
   <div class="page-header">
     <div class="page-header-left">
@@ -70,7 +71,8 @@
         <div class="panel-section">
           <div class="panel-section-label">DRY RUN</div>
           <div class="panel-section-body">
-            <button class="btn-action btn-secondary" id="btn-dryrun" {% if sync_running %}disabled{% endif %}>
+            <button class="btn-action btn-secondary" id="btn-dryrun" {% if sync_running %}disabled{% endif %}
+              title="Reads from HubSpot but does not write to the sheet — safe for testing">
               ▷ Dry Run
             </button>
           </div>
@@ -78,7 +80,7 @@
 
         <div class="panel-divider"></div>
 
-        <div class="panel-section">
+        <div class="panel-section panel-section-right">
           <div class="panel-section-label">NEXT SCHEDULED RUN</div>
           <div class="panel-section-body">
             {% if next_runs %}
@@ -162,6 +164,8 @@
     {% endif %}
 
   </div>
+
+</div>{# end .page-wrapper #}
 
   <script>
     async function triggerSync(dryRun) {

@@ -1,5 +1,61 @@
 # Changelog
 
+## 2026-08-10 — Dashboard Alignment Fix + Scheduler Bug Fix
+
+### Fixed — Scheduler never running (RCA + fix)
+- **Root cause:** `SCHEDULER_ENABLED=false` was left at its default in the VM `.env` since initial deployment. The scheduler never started, so the 10AM/10PM IST auto-syncs never fired. The service was running but acting as a manual-only dashboard.
+- **Fix:** Set `SCHEDULER_ENABLED=true` in `/opt/services/hubspot-sheet-sync/.env` on the VM and restarted the service. Scheduler is now live with both jobs registered (04:30 UTC / 16:30 UTC).
+- **Note:** After any deploy that restarts the service, verify this flag is still `true` — it is NOT reset by the deploy, but worth confirming.
+
+### Fixed — Dashboard layout on wide screens
+- Wrapped the entire page in `.page-wrapper` (`max-width: 1300px; margin: 0 auto; padding: 0 40px`) so the title, Refresh button, stat cards, and panels all share the same centred column on any screen width. Previously the header was full-width while `.page-content` had `max-width` but no `margin: auto`, causing a blank space on the right on screens wider than 1300px.
+- Actions panel: "NEXT SCHEDULED RUN" section now uses `margin-left: auto` to anchor it to the right edge of the panel, with SYNC and DRY RUN remaining on the left.
+- Panel sections now vertically centre-align (`align-items: center`).
+- Dry Run: replaced visible hint text with a `title` tooltip to keep the panel compact.
+
+---
+
+## 2026-08-06 — Column Normalisation + Sheet Setup Script
+
+### Added — Column normalisation formatters (`src/mapping.py`)
+- `fmt_trial_done`: `To-Start` / `to_start` → `"To start"`, `Yes` → `"Yes"`, `No` → `"No"`
+- `fmt_l1_qualified`: `Yes` → `Yes`, `Maybe` → `Maybe`, `Weak fit`/`No` → `No`
+- `fmt_l2_qualified`: `Yes` → `Yes`, `May be`/`Maybe` → `Maybe`, `No` → `No`
+- `fmt_l3_qualified`: `Yes` → `High`, `Maybe` → `Medium`, `No` → `Low`
+- Updated `COLUMN_MAP`: cols L, M, N now use the new qualified formatters; col AB uses `trial_done`
+
+### Changed — Formatter dispatch simplified (`src/hubspot.py`)
+- Replaced long `if/elif` formatter chain in `get_row_data()` with a single `apply_formatter()` call. New formatters added to `_FORMATTERS` dict in `mapping.py` are now picked up automatically without touching `hubspot.py`.
+- Removed unused individual formatter imports.
+
+### Added — Sheet setup script (`scripts/setup_sheet.py`)
+- Run once to configure Google Sheet dropdowns and conditional formatting.
+- Col T (Stage): dropdown populated with live stage labels from HubSpot Sales Pipeline API.
+- Col U (Trial Stage): dropdown with 8 options (To Start, Trial - Integrations, Trial - Ongoing [Hot/Cold], Trial - Ended [Hot/Cold], Data Trial, Trial Not Sure).
+- Green row highlight: entire row turns green when col T = "Closed Won".
+- Clears existing rules before applying — safe to re-run without accumulating duplicates.
+
+### Deployed
+- Files deployed to VM: `src/mapping.py`, `src/hubspot.py`, `src/sync.py`, `scripts/setup_sheet.py`
+
+---
+
+## 2026-08-05 — Column Map Overhaul
+
+### Added — Owner, ICP, L1/L2/L3, Trial Stage, Still Active columns
+
+- **Col D (Owner?):** First names only; multiple owners joined as `"Chandra, Piyush"` — uses `hubspot_owner_id` + `hs_all_owner_ids`
+- **Col F (ICP Segment):** `fmt_icp_segment` → `OSS` / `OSS Affiliated` / `Closed Source` / `Agency/Other`; `Non Open Source` → `Closed Source`
+- **Col G (ICP Size):** Computed: `Enterprise` ≥500 emp / `Commercial` ≥200 / `SMB` <200 & ≥2 sales team / `Startup`
+- **Cols L/M/N:** L1/L2/L3 Qualified — switched source from deal → company properties
+- **Cols O/P/Q:** L1/L2/L3 Comments — switched source from deal → company properties
+- **Cols R/S:** Next Steps / Due Date — management deal field overrides company form field
+- **Col U (Trial Stage):** New column inserted from `trial_status`; all columns U+ shifted right by 1
+- **Col AA (Still active?):** Computed — `No` if won/lost/converted, `Pushed Out` if pushed out, else `Yes`
+- **Col AG (SDR):** Fixed hardcoded column `AF` → `AG` after the column insertion shifted it
+
+---
+
 ## 2026-08-05 — HubSpot Lookup Algorithm Overhaul
 
 ### Problem
