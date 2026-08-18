@@ -117,7 +117,7 @@ def run_sync(dry_run: bool = False) -> RunResult:
 
             # Inject SDR value from sdr_map
             norm = normalize_domain(domain)
-            row_data["AF"] = sdr_map.get(norm, "")
+            row_data["AG"] = sdr_map.get(norm, "")
 
             updates.append({"row": row_idx, "values": row_data})
             rows_synced += 1

@@ -14,18 +14,14 @@ logger = logging.getLogger(__name__)
 
 DEAL_PROPERTIES = [
     "hubspot_owner_id",
+    "hs_all_owner_ids",
     "dealstage",
     "pipeline",
     "opportunity",
     "hs_priority",
-    "l1_qualified_icp",
-    "l2_qualified_seniority",
-    "l3_qualified_intent",
-    "l1_qualification_comments",
-    "l2_qualification_comments",
-    "l3_qualification_comments",
     "next_steps_management",
     "next_steps_due_date_management",
+    "trial_status",
     "trial_start_date",
     "trial_end_date",
     "conversion",
@@ -41,12 +37,18 @@ COMPANY_PROPERTIES = [
     "name",
     "hubspot_owner_id",
     "icp",
-    "icp_size",
     "total_funding",
     "numberofemployees",
     "r__size_of_sales_team",
-    "notes_from_call",
+    "l1_qualified__",
+    "l2_qualified__",
+    "l3_qualified____cloned_",
+    "r_l1_qualification_comments_form",
     "r_l2_qualification_comments_form",
+    "r_l3_qualification_comments_form",
+    "next_steps",
+    "next_steps_due_date",
+    "notes_from_call",
 ]
 
 # ── Column map ────────────────────────────────────────────────────────────────
@@ -56,39 +58,40 @@ COMPANY_PROPERTIES = [
 
 COLUMN_MAP = [
     # col B = Date of First Meeting — SKIP (manual)
-    ("C",  "Opportunity?",                      "deal",    "opportunity",                       "passthrough"),
-    ("D",  "Owner?",                            "deal",    "hubspot_owner_id",                  "owner_name"),
-    ("E",  "Priority",                          "deal",    "hs_priority",                       "capitalize"),
-    ("F",  "ICP - Segment",                     "company", "icp",                               "passthrough"),
-    ("G",  "ICP - Size",                        "company", "icp_size",                          "passthrough"),
-    ("H",  "Funding",                           "company", "total_funding",                     "number"),
-    ("I",  "Employee Count",                    "company", "numberofemployees",                 "number"),
-    ("J",  "Size of Sales Team",                "company", "r__size_of_sales_team",             "number"),
-    ("K",  "Job Title of Champion",             "company", "r_l2_qualification_comments_form",  "passthrough"),
-    ("L",  "L1 Qualified? [ICP]",               "deal",    "l1_qualified_icp",                  "passthrough"),
-    ("M",  "L2 Qualified? [Seniority]",         "deal",    "l2_qualified_seniority",            "passthrough"),
-    ("N",  "L3 Qualified? [Intent]",            "deal",    "l3_qualified_intent",               "passthrough"),
-    ("O",  "L1 Qualification Comments",         "deal",    "l1_qualification_comments",         "passthrough"),
-    ("P",  "L2 Qualification Comments",         "deal",    "l2_qualification_comments",         "passthrough"),
-    ("Q",  "L3 Qualification Comments",         "deal",    "l3_qualification_comments",         "passthrough"),
-    ("R",  "Next Steps",                        "deal",    "next_steps_management",             "passthrough"),
-    ("S",  "Due Date",                          "deal",    "next_steps_due_date_management",    "date_dmy"),
-    ("T",  "Stage",                             "deal",    "dealstage",                         "stage_label"),
-    ("U",  "Trial Start Date",                  "deal",    "trial_start_date",                  "date_dmy"),
-    ("V",  "Trial End Date",                    "deal",    "trial_end_date",                    "date_dmy"),
-    ("W",  "Notes from Call",                   "company", "notes_from_call",                   "passthrough"),
-    # col X = SKIP
-    ("Y",  "Conversion",                        "deal",    "conversion",                        "passthrough"),
-    # col Z = SKIP (Still active? — manual)
-    ("AA", "Trial done?",                       "deal",    "trial_done",                        "passthrough"),
-    # cols AB, AC, AD = SKIP
-    # col AE = SKIP (Real Opportunity? — manual)
-    ("AF", "Source of meeting",                 "sdr",     "sdr_lookup",                        "passthrough"),
-    # col AG = SKIP (manual)
-    ("AH", "Closure Month",                     "deal",    "closedate",                         "month_year"),
-    ("AI", "Opportunity loss reason",           "deal",    "closed_lost_reasons",               "passthrough"),
-    ("AJ", "Opportunity loss reason - deepdive","deal",    "closed_lost_details",               "passthrough"),
-    # col AK = SKIP (Trial loss reason — manual)
+    ("C",  "Opportunity?",                       "deal",     "opportunity",                       "passthrough"),
+    ("D",  "Owner?",                             "computed", "owner_first_names",                 "passthrough"),
+    ("E",  "Priority",                           "deal",     "hs_priority",                       "capitalize"),
+    ("F",  "ICP - Segment",                      "company",  "icp",                               "icp_segment"),
+    ("G",  "ICP - Size",                         "computed", "icp_size",                          "passthrough"),
+    ("H",  "Funding",                            "company",  "total_funding",                     "number"),
+    ("I",  "Employee Count",                     "company",  "numberofemployees",                 "number"),
+    ("J",  "Size of Sales Team",                 "company",  "r__size_of_sales_team",             "number"),
+    ("K",  "Job Title of Champion",              "company",  "r_l2_qualification_comments_form",  "passthrough"),
+    ("L",  "L1 Qualified? [ICP]",                "company",  "l1_qualified__",                    "l1_qualified"),
+    ("M",  "L2 Qualified? [Seniority]",          "company",  "l2_qualified__",                    "l2_qualified"),
+    ("N",  "L3 Qualified? [Intent]",             "company",  "l3_qualified____cloned_",           "l3_qualified"),
+    ("O",  "L1 Qualification Comments",          "company",  "r_l1_qualification_comments_form",  "passthrough"),
+    ("P",  "L2 Qualification Comments",          "company",  "r_l2_qualification_comments_form",  "passthrough"),
+    ("Q",  "L3 Qualification Comments",          "company",  "r_l3_qualification_comments_form",  "passthrough"),
+    ("R",  "Next Steps",                         "computed", "next_steps_r",                      "passthrough"),
+    ("S",  "Due Date",                           "computed", "next_steps_s",                      "date_dmy"),
+    ("T",  "Stage",                              "deal",     "dealstage",                         "stage_label"),
+    ("U",  "Trial Stage",                        "deal",     "trial_status",                      "passthrough"),
+    ("V",  "Trial Start Date",                   "deal",     "trial_start_date",                  "date_dmy"),
+    ("W",  "Trial End Date",                     "deal",     "trial_end_date",                    "date_dmy"),
+    ("X",  "Notes from Call",                    "company",  "notes_from_call",                   "passthrough"),
+    # col Y = SKIP
+    ("Z",  "Conversion",                         "deal",     "conversion",                        "passthrough"),
+    ("AA", "Still active?",                      "computed", "still_active",                      "passthrough"),
+    ("AB", "Trial done?",                        "deal",     "trial_done",                        "trial_done"),
+    # cols AC, AD, AE = SKIP
+    # col AF = SKIP (Real Opportunity? — manual)
+    ("AG", "Source of meeting",                  "sdr",      "sdr_lookup",                        "passthrough"),
+    # col AH = SKIP (manual)
+    ("AI", "Closure Month",                      "deal",     "closedate",                         "month_year"),
+    ("AJ", "Opportunity loss reason",            "deal",     "closed_lost_reasons",               "passthrough"),
+    ("AK", "Opportunity loss reason - deepdive", "deal",     "closed_lost_details",               "passthrough"),
+    # col AL = SKIP (Trial loss reason — manual)
 ]
 
 # ── Column letter ↔ index helpers ─────────────────────────────────────────────
@@ -185,13 +188,105 @@ def fmt_month_year(value: str | None) -> str:
     return f"{_MONTH_ABBR[dt.month]} {dt.year}"
 
 
+_ICP_SEGMENT_MAP: dict[str, str] = {
+    "open source":            "OSS",
+    "open source affiliated": "OSS Affiliated",
+    "non open source":        "Closed Source",
+    "agency / others":        "Agency/Other",
+    "agency/others":          "Agency/Other",
+    "agency / other":         "Agency/Other",
+}
+
+
+def fmt_icp_segment(value: str | None) -> str:
+    """Normalise HubSpot icp company value to sheet dropdown label."""
+    v = fmt_passthrough(value)
+    if not v:
+        return ""
+    mapped = _ICP_SEGMENT_MAP.get(v.lower().strip())
+    if mapped is None:
+        logger.warning("Unknown ICP segment value: %r — writing raw", v)
+        return v
+    return mapped
+
+
+_TRIAL_DONE_MAP: dict[str, str] = {
+    "to-start":   "To start",
+    "to_start":   "To start",
+    "to start":   "To start",
+    "yes":        "Yes",
+    "no":         "No",
+}
+
+
+def fmt_trial_done(value: str | None) -> str:
+    """Normalise trial_done dropdown: 'To-Start' → 'To start', etc."""
+    v = fmt_passthrough(value)
+    if not v:
+        return ""
+    mapped = _TRIAL_DONE_MAP.get(v.lower().strip())
+    if mapped is not None:
+        return mapped
+    return v
+
+
+_L1_MAP: dict[str, str] = {
+    "yes":      "Yes",
+    "maybe":    "Maybe",
+    "weak fit": "No",
+    "no":       "No",
+}
+
+_L2_MAP: dict[str, str] = {
+    "yes":    "Yes",
+    "may be": "Maybe",
+    "maybe":  "Maybe",
+    "no":     "No",
+}
+
+_L3_MAP: dict[str, str] = {
+    "yes":   "High",
+    "maybe": "Medium",
+    "no":    "Low",
+}
+
+
+def fmt_l1_qualified(value: str | None) -> str:
+    """L1 Qualified: Yes→Yes, Maybe→Maybe, Weak fit/No→No."""
+    v = fmt_passthrough(value)
+    if not v:
+        return ""
+    return _L1_MAP.get(v.lower().strip(), v)
+
+
+def fmt_l2_qualified(value: str | None) -> str:
+    """L2 Qualified: Yes→Yes, May be/Maybe→Maybe, No→No."""
+    v = fmt_passthrough(value)
+    if not v:
+        return ""
+    return _L2_MAP.get(v.lower().strip(), v)
+
+
+def fmt_l3_qualified(value: str | None) -> str:
+    """L3 Qualified (Intent): Yes→High, Maybe→Medium, No→Low."""
+    v = fmt_passthrough(value)
+    if not v:
+        return ""
+    return _L3_MAP.get(v.lower().strip(), v)
+
+
 # Formatter registry — resolved at call time so stage_label can inject the cache
 _FORMATTERS = {
-    "passthrough": fmt_passthrough,
-    "capitalize":  fmt_capitalize,
-    "number":      fmt_number,
-    "date_dmy":    fmt_date_dmy,
-    "month_year":  fmt_month_year,
+    "passthrough":    fmt_passthrough,
+    "capitalize":     fmt_capitalize,
+    "number":         fmt_number,
+    "date_dmy":       fmt_date_dmy,
+    "month_year":     fmt_month_year,
+    "icp_segment":    fmt_icp_segment,
+    "trial_done":     fmt_trial_done,
+    "l1_qualified":   fmt_l1_qualified,
+    "l2_qualified":   fmt_l2_qualified,
+    "l3_qualified":   fmt_l3_qualified,
 }
 
 

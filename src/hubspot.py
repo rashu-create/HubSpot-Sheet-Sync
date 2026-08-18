@@ -28,11 +28,6 @@ from src.mapping import (
     COMPANY_PROPERTIES,
     DEAL_PROPERTIES,
     apply_formatter,
-    fmt_date_dmy,
-    fmt_month_year,
-    fmt_passthrough,
-    fmt_capitalize,
-    fmt_number,
     normalize_domain,
 )
 
@@ -667,6 +662,45 @@ def _get_owner_name(owner_id: str, token: str) -> str:
     return name
 
 
+# ── Owner first-names helper ──────────────────────────────────────────────────
+
+def _parse_int(val: str | None) -> int:
+    """Parse a HubSpot numeric string (may have commas) to int, or 0."""
+    if not val:
+        return 0
+    try:
+        return int(float(str(val).replace(",", "").strip()))
+    except (ValueError, TypeError):
+        return 0
+
+
+def _compute_owner_first_names(deal_props: dict, token: str) -> str:
+    """Return ', '-joined first names: primary AE first, then collaborators.
+
+    Uses hubspot_owner_id (primary) + hs_all_owner_ids (all, incl. primary).
+    Deduplicates while preserving primary-first order.
+    """
+    primary_id = str(deal_props.get("hubspot_owner_id") or "").strip()
+    all_ids_raw = str(deal_props.get("hs_all_owner_ids") or "").strip()
+
+    all_ids = [oid.strip() for oid in re.split(r"[;,]", all_ids_raw) if oid.strip()] if all_ids_raw else []
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for oid in ([primary_id] if primary_id else []) + all_ids:
+        if oid and oid not in seen:
+            seen.add(oid)
+            ordered.append(oid)
+
+    first_names: list[str] = []
+    for oid in ordered:
+        full_name = _get_owner_name(oid, token)
+        if full_name:
+            first_names.append(full_name.split()[0])
+
+    return ", ".join(first_names)
+
+
 # ── Main entry point ──────────────────────────────────────────────────────────
 
 def get_row_data(domain: str) -> dict | None:
@@ -775,27 +809,57 @@ def get_row_data(domain: str) -> dict | None:
         deal_props = fetch_deal_properties(deal_id, token)
         company_props = fetch_company_properties(company_id, token) if company_id else {}
 
-        # 4. Resolve owner name (AE filter applies)
-        deal_owner_id = deal_props.get("hubspot_owner_id") or deal_info.get("owner_id")
-        owner_id = (deal_owner_id if _is_ae(deal_owner_id) else None) or (
-            fallback_owner_id if _is_ae(fallback_owner_id) else None
-        )
-        owner_name = _get_owner_name(owner_id, token) if owner_id else ""
-
-        # 5. Resolve stage label
+        # 3. Resolve stage label (needed by COLUMN_MAP T and still_active)
         raw_stage = deal_props.get("dealstage") or deal_info.get("deal_stage") or ""
         stage_label = _STAGE_LABEL_CACHE.get(raw_stage, raw_stage)
 
-        # 6. Build output dict by walking COLUMN_MAP
+        # 4. Pre-compute derived values
+        computed: dict[str, str] = {}
+
+        # Owner: primary AE first name, then collaborator first names
+        computed["owner_first_names"] = _compute_owner_first_names(deal_props, token)
+
+        # ICP Size: Enterprise / Commercial / SMB / Startup
+        employees = _parse_int(company_props.get("numberofemployees"))
+        sales_team = _parse_int(company_props.get("r__size_of_sales_team"))
+        if employees >= 500:
+            computed["icp_size"] = "Enterprise"
+        elif employees >= 200:
+            computed["icp_size"] = "Commercial"
+        elif employees < 200 and sales_team >= 2:
+            computed["icp_size"] = "SMB"
+        else:
+            computed["icp_size"] = "Startup"
+
+        # Next Steps: management override → else form value
+        computed["next_steps_r"] = (
+            deal_props.get("next_steps_management") or company_props.get("next_steps") or ""
+        )
+        computed["next_steps_s"] = (
+            deal_props.get("next_steps_due_date_management") or
+            company_props.get("next_steps_due_date") or ""
+        )
+
+        # Still active? (derived from stage label)
+        stage_lower = stage_label.lower()
+        if any(s in stage_lower for s in ("won", "lost", "converted")):
+            computed["still_active"] = "No"
+        elif "pushed out" in stage_lower:
+            computed["still_active"] = "Pushed Out"
+        else:
+            computed["still_active"] = "Yes"
+
+        # 5. Build output dict by walking COLUMN_MAP
         result: dict[str, str] = {}
 
         for col_letter, _header, source, prop_key, formatter in COLUMN_MAP:
             if source == "sdr":
-                # SDR value is injected by sync.py — leave as placeholder
                 result[col_letter] = ""
                 continue
 
-            if source == "deal":
+            if source == "computed":
+                raw_value = computed.get(prop_key, "")
+            elif source == "deal":
                 raw_value = deal_props.get(prop_key)
             elif source == "company":
                 raw_value = company_props.get(prop_key)
@@ -803,22 +867,10 @@ def get_row_data(domain: str) -> dict | None:
                 raw_value = None
 
             # Apply formatter
-            if formatter == "owner_name":
-                formatted = owner_name
-            elif formatter == "stage_label":
+            if formatter == "stage_label":
                 formatted = stage_label
-            elif formatter == "passthrough":
-                formatted = fmt_passthrough(raw_value)
-            elif formatter == "capitalize":
-                formatted = fmt_capitalize(raw_value)
-            elif formatter == "number":
-                formatted = fmt_number(raw_value)
-            elif formatter == "date_dmy":
-                formatted = fmt_date_dmy(raw_value)
-            elif formatter == "month_year":
-                formatted = fmt_month_year(raw_value)
             else:
-                formatted = fmt_passthrough(raw_value)
+                formatted = apply_formatter(formatter, raw_value)
 
             result[col_letter] = formatted
 
