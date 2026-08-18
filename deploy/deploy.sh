@@ -26,7 +26,7 @@ gcloud compute ssh "${VM}" --zone="${ZONE}" --tunnel-through-iap --command="
   rm ${TARBALL}
   sudo systemctl restart ${SERVICE}
   sleep 3
-  sudo systemctl status ${SERVICE} --no-pager -l | grep -E 'Active|Scheduler|started|ERROR'
+  sudo systemctl status ${SERVICE} --no-pager -l | grep -E 'Active|Scheduler|started|ERROR' || true
 "
 
 echo "==> Cleaning up local tarball..."
