@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-19 — Safe Deploy Script + Slack Fix + Sheet Chip Formatting
+
+### Added — Safe deploy script (`deploy/deploy.sh`)
+- Packs only `src/`, `templates/`, `static/`, `requirements.txt` — never `.env`.
+- Root cause of two prior ERROR syncs: local `.env` was bundled in ad-hoc tar, overwriting VM's `GOOGLE_CREDENTIALS_FILE` path and `SCHEDULER_ENABLED=true`.
+- `deploy/env-init.sh` added as a one-time helper for standing up the VM `.env` on a fresh instance.
+
+### Fixed — Slack notifications (`src/slack.py`)
+- Switched from `SLACK_WEBHOOK_URL` + `WebhookClient` (was returning 404) to `SLACK_BOT_TOKEN` + `SLACK_ALERT_CHANNEL` + `WebClient.chat_postMessage` via the Kaori bot.
+- Channel: `D0B5WE9LGP4` (Kaori DM).
+
+### Added — Sheet chip formatting (`scripts/setup_sheet.py`)
+- Col C (Opportunity?): `Yes/No/Maybe` dropdown + green/red/yellow chip colours via conditional formatting.
+- Col D (Owner?): 8-name dropdown (`strict: false`, `showCustomUi: true`) + per-owner chip colours via conditional formatting. Owner values now written as `"Chandra,Piyush"` (no space after comma) for compatibility with Google Sheets chip multi-select parsing.
+- Conditional format priority: Closed Won full-row green > Opportunity? colours > Owner? colours.
+- Script is idempotent — clears existing conditional format rules before applying.
+
+### Open Issue — Owner? "Allow multiple selections"
+- The Sheets API `setDataValidation` cannot enable the "Allow multiple selections" checkbox — that flag is Google Sheets UI-only and not exposed in the v4 API.
+- Effect: clicking the Owner? dropdown shows a single-select picker; multi-owner values like `"Chandra,Piyush"` written by the sync display correctly but the picker doesn't show them as separately toggled chips.
+- Workaround: manually tick "Allow multiple selections" in Google Sheets > Data > Data validation for col D, or accept current behaviour (values display and sync correctly; only the picker UX is limited).
+
+---
+
 ## 2026-08-10 — Dashboard Alignment Fix + Scheduler Bug Fix
 
 ### Fixed — Scheduler never running (RCA + fix)
