@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-08-21 — Still Active "Irrelevant" fix + Once-Daily Scheduler
+
+### Fixed — `still_active` logic (`src/hubspot.py`)
+- Stage label "Irrelevant" now maps to `Still active? = "No"` (was being treated as
+  "Yes" because the match only checked "won", "lost", "converted").
+- One-shot clear: `scripts/clear_columns.py` ran to wipe stale values from col AF
+  (Real Opportunity?) and col AH (Source of meeting [Refined]) — both are `SKIP`
+  columns that sync never writes; this was a manual one-time cleanup.
+
+### Changed — Scheduler (`src/scheduler.py`)
+- Consolidated from two jobs (04:30 UTC + 16:30 UTC) to one daily job at **08:00 UTC
+  (1:30 PM IST)**, matching ae-kpi-tracker's daily sync cadence.
+- Job ID renamed `sync_daily`; old IDs `sync_morning` / `sync_evening` removed.
+
+**Verification**
+- Deployed; VM log confirms `Scheduler started — job: sync_daily (08:00 UTC)`.
+- Manual sync post-deploy: 339/344 rows synced, 0 errors,
+  `next_run_at: 2026-08-21T08:00:00+00:00`.
+
+---
+
 ## 2026-08-19 — Safe Deploy Script + Slack Fix + Sheet Chip Formatting
 
 ### Added — Safe deploy script (`deploy/deploy.sh`)

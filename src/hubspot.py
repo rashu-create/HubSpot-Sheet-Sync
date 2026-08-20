@@ -844,7 +844,7 @@ def get_row_data(domain: str) -> dict | None:
 
         # Still active? (derived from stage label)
         stage_lower = stage_label.lower()
-        if any(s in stage_lower for s in ("won", "lost", "converted")):
+        if any(s in stage_lower for s in ("won", "lost", "converted", "irrelevant")):
             computed["still_active"] = "No"
         elif "pushed out" in stage_lower:
             computed["still_active"] = "Pushed Out"
