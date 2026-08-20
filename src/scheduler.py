@@ -1,6 +1,6 @@
 """APScheduler configuration for HubSpot→Sheet sync.
 
-Two cron jobs: 04:30 UTC and 16:30 UTC (= 10:00 AM IST and 10:00 PM IST).
+One cron job: 08:00 UTC (= 1:30 PM IST).
 
 Each job:
   1. Runs run_sync()
@@ -140,30 +140,18 @@ def start_scheduler() -> None:
 
     _scheduler = BackgroundScheduler(timezone="UTC")
 
-    # 04:30 UTC = 10:00 AM IST
     _scheduler.add_job(
         _sync_job,
-        trigger=CronTrigger(hour=4, minute=30, timezone="UTC"),
-        id="sync_morning",
-        name="HubSpot Sync — Morning (04:30 UTC)",
-        max_instances=1,
-        replace_existing=True,
-        misfire_grace_time=300,
-    )
-
-    # 16:30 UTC = 10:00 PM IST
-    _scheduler.add_job(
-        _sync_job,
-        trigger=CronTrigger(hour=16, minute=30, timezone="UTC"),
-        id="sync_evening",
-        name="HubSpot Sync — Evening (16:30 UTC)",
+        trigger=CronTrigger(hour=8, minute=0, timezone="UTC"),
+        id="sync_daily",
+        name="HubSpot Sync — Daily (08:00 UTC)",
         max_instances=1,
         replace_existing=True,
         misfire_grace_time=300,
     )
 
     _scheduler.start()
-    logger.info("Scheduler started — jobs: sync_morning (04:30 UTC), sync_evening (16:30 UTC)")
+    logger.info("Scheduler started — job: sync_daily (08:00 UTC)")
 
 
 def stop_scheduler() -> None:
