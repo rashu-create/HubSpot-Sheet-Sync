@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-22 — Deal Amount → column AN
+
+### Added — `src/mapping.py`
+- `"amount"` added to `DEAL_PROPERTIES` so HubSpot deal amount is fetched on every sync.
+- Column AN entry added to `COLUMN_MAP`: header "Deal Amount", source `deal`, property `amount`, formatter `number`. Placed after AK (Opportunity loss reason deepdive); AL and AM are manual SKIP columns.
+
+### Added — `tests/test_mapping.py`
+- `test_amount_in_deal_properties` — verifies `amount` is in `DEAL_PROPERTIES`.
+- `test_column_an_in_column_map` — verifies AN is mapped to `deal`/`amount`/`number`.
+
+**Verification**
+- Synced 339/344 rows; column AN populated in Sales Pipeline 2026 with deal amounts.
+- Amounts visible in ae-kpi-tracker Weighted/Absolute Deal Value formulas (cols Q/R).
+
+---
+
 ## 2026-08-21 — Still Active "Irrelevant" fix + Once-Daily Scheduler
 
 ### Fixed — `still_active` logic (`src/hubspot.py`)
