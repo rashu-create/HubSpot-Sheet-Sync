@@ -30,6 +30,7 @@ DEAL_PROPERTIES = [
     "closed_lost_reasons",
     "closed_lost_details",
     "createdate",
+    "amount",          # deal amount in USD
 ]
 
 COMPANY_PROPERTIES = [
@@ -92,6 +93,8 @@ COLUMN_MAP = [
     ("AJ", "Opportunity loss reason",            "deal",     "closed_lost_reasons",               "passthrough"),
     ("AK", "Opportunity loss reason - deepdive", "deal",     "closed_lost_details",               "passthrough"),
     # col AL = SKIP (Trial loss reason — manual)
+    # col AM = SKIP (Intent signals — manual)
+    ("AN", "Deal Amount",                        "deal",     "amount",                            "number"),
 ]
 
 # ── Column letter ↔ index helpers ─────────────────────────────────────────────

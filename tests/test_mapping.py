@@ -196,3 +196,20 @@ class TestWriteRangeNeverColA:
         for col_letter, *_ in COLUMN_MAP:
             idx = col_letter_to_index(col_letter)
             assert idx > 1, f"Column {col_letter!r} maps to index {idx} — that is column A!"
+
+
+def test_amount_in_deal_properties():
+    """HubSpot amount property must be fetched on every deal."""
+    from src.mapping import DEAL_PROPERTIES
+    assert "amount" in DEAL_PROPERTIES
+
+
+def test_column_an_in_column_map():
+    """Column AN must be mapped to deal amount."""
+    from src.mapping import COLUMN_MAP
+    cols = {entry[0]: entry for entry in COLUMN_MAP}
+    assert "AN" in cols, "AN column entry missing from COLUMN_MAP"
+    col, header, source, prop, formatter = cols["AN"]
+    assert source == "deal"
+    assert prop == "amount"
+    assert formatter == "number"
