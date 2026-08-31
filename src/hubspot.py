@@ -28,6 +28,7 @@ from src.mapping import (
     COMPANY_PROPERTIES,
     DEAL_PROPERTIES,
     apply_formatter,
+    fmt_passthrough,
     normalize_domain,
 )
 
@@ -703,6 +704,43 @@ def _compute_owner_first_names(deal_props: dict, token: str) -> str:
     return ",".join(first_names)
 
 
+# ── Employee count + ICP size helpers ────────────────────────────────────────
+
+def _compute_employee_count_merged(company_props: dict) -> str:
+    """Return employee_count if set, else numberofemployees, else ''.
+
+    employee_count is the custom 'R.Employee count' property filled by the
+    sales team. numberofemployees is the standard HubSpot auto-enriched
+    property that is often blank for developer-tool companies.
+    """
+    val = fmt_passthrough(company_props.get("employee_count"))
+    if not val:
+        val = fmt_passthrough(company_props.get("numberofemployees"))
+    return val
+
+
+def _compute_icp_size(
+    employee_count: str | None,
+    numberofemployees: str | None,
+    sales_team: str | None,
+) -> str:
+    """Return ICP size bucket: Enterprise ≥500, Commercial ≥200, SMB <200 & sales_team ≥2, else Startup.
+
+    Reads employee_count (custom, sales-team-filled) first; falls back to
+    numberofemployees (standard auto-enriched).
+    """
+    employees = _parse_int(employee_count or numberofemployees)
+    sales = _parse_int(sales_team)
+    if employees >= 500:
+        return "Enterprise"
+    elif employees >= 200:
+        return "Commercial"
+    elif employees < 200 and sales >= 2:
+        return "SMB"
+    else:
+        return "Startup"
+
+
 # ── Main entry point ──────────────────────────────────────────────────────────
 
 def get_row_data(domain: str) -> dict | None:
@@ -822,16 +860,14 @@ def get_row_data(domain: str) -> dict | None:
         computed["owner_first_names"] = _compute_owner_first_names(deal_props, token)
 
         # ICP Size: Enterprise / Commercial / SMB / Startup
-        employees = _parse_int(company_props.get("numberofemployees"))
-        sales_team = _parse_int(company_props.get("r__size_of_sales_team"))
-        if employees >= 500:
-            computed["icp_size"] = "Enterprise"
-        elif employees >= 200:
-            computed["icp_size"] = "Commercial"
-        elif employees < 200 and sales_team >= 2:
-            computed["icp_size"] = "SMB"
-        else:
-            computed["icp_size"] = "Startup"
+        computed["icp_size"] = _compute_icp_size(
+            employee_count=company_props.get("employee_count"),
+            numberofemployees=company_props.get("numberofemployees"),
+            sales_team=company_props.get("r__size_of_sales_team"),
+        )
+
+        # Employee Count: custom property first, standard auto-enriched as fallback
+        computed["employee_count_merged"] = _compute_employee_count_merged(company_props)
 
         # Next Steps: management override → else form value
         computed["next_steps_r"] = (

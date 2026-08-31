@@ -180,17 +180,17 @@ class TestRunResultFields:
     @patch("src.sync.sheets.read_pipeline_domains")
     @patch("src.sync.sheets.build_sdr_map")
     @patch("src.sync.hubspot.get_row_data")
-    def test_sdr_injected_into_af_column(
+    def test_sdr_injected_into_ag_column(
         self,
         mock_get_row_data,
         mock_build_sdr_map,
         mock_read_domains,
         mock_write_rows,
     ):
-        """SDR value from sdr_map should be injected as column AF in each update."""
+        """SDR value from sdr_map should be injected as column AG in each update."""
         mock_build_sdr_map.return_value = {"example.com": "Sarah SDR"}
         mock_read_domains.return_value = [(2, "example.com")]
-        mock_get_row_data.return_value = {"C": "Yes", "AF": ""}
+        mock_get_row_data.return_value = {"C": "Yes", "AG": ""}
 
         # Capture what write_pipeline_rows receives
         captured = []
@@ -200,7 +200,7 @@ class TestRunResultFields:
 
         assert captured, "Expected at least one update"
         row_update = captured[0]
-        assert row_update["values"].get("AF") == "Sarah SDR"
+        assert row_update["values"].get("AG") == "Sarah SDR"
 
     @patch("src.sync.sheets.write_pipeline_rows")
     @patch("src.sync.sheets.read_pipeline_domains")
@@ -213,10 +213,10 @@ class TestRunResultFields:
         mock_read_domains,
         mock_write_rows,
     ):
-        """SDR column AF should be empty string when domain not in sdr_map."""
+        """SDR column AG should be empty string when domain not in sdr_map."""
         mock_build_sdr_map.return_value = {}
         mock_read_domains.return_value = [(2, "example.com")]
-        mock_get_row_data.return_value = {"C": "Yes", "AF": ""}
+        mock_get_row_data.return_value = {"C": "Yes", "AG": ""}
 
         captured = []
         mock_write_rows.side_effect = lambda updates: captured.extend(updates)
@@ -224,7 +224,65 @@ class TestRunResultFields:
         run_sync(dry_run=False)
 
         assert captured
-        assert captured[0]["values"].get("AF") == ""
+        assert captured[0]["values"].get("AG") == ""
+
+
+# ── Employee count merge + ICP size helpers ───────────────────────────────────
+
+class TestEmployeeCountMerge:
+    """_compute_employee_count_merged and _compute_icp_size behave correctly."""
+
+    def _props(self, employee_count=None, numberofemployees=None, sales_team="0"):
+        return {
+            "employee_count": employee_count,
+            "numberofemployees": numberofemployees,
+            "r__size_of_sales_team": sales_team,
+        }
+
+    def test_employee_count_primary(self):
+        """employee_count is used when set, even if numberofemployees is also set."""
+        from src.hubspot import _compute_employee_count_merged
+        assert _compute_employee_count_merged(self._props("300", "500")) == "300"
+
+    def test_numberofemployees_fallback(self):
+        """numberofemployees is used when employee_count is None/empty."""
+        from src.hubspot import _compute_employee_count_merged
+        assert _compute_employee_count_merged(self._props(None, "500")) == "500"
+
+    def test_empty_string_employee_count_falls_back(self):
+        """Empty string employee_count triggers fallback to numberofemployees."""
+        from src.hubspot import _compute_employee_count_merged
+        assert _compute_employee_count_merged(self._props("", "500")) == "500"
+
+    def test_both_empty_returns_empty(self):
+        """Both None → empty string."""
+        from src.hubspot import _compute_employee_count_merged
+        assert _compute_employee_count_merged(self._props(None, None)) == ""
+
+    def test_icp_size_uses_employee_count_over_numberofemployees(self):
+        """ICP size is computed from employee_count when set, ignoring numberofemployees."""
+        from src.hubspot import _compute_icp_size
+        assert _compute_icp_size("600", "50", "0") == "Enterprise"
+
+    def test_icp_size_falls_back_to_numberofemployees(self):
+        """ICP size falls back to numberofemployees when employee_count is blank."""
+        from src.hubspot import _compute_icp_size
+        assert _compute_icp_size(None, "300", "0") == "Commercial"
+
+    def test_icp_size_startup_when_both_blank(self):
+        """Both blank → 0 employees, no sales team → Startup."""
+        from src.hubspot import _compute_icp_size
+        assert _compute_icp_size(None, None, "0") == "Startup"
+
+    def test_icp_size_smb(self):
+        """<200 employees and sales_team ≥2 → SMB."""
+        from src.hubspot import _compute_icp_size
+        assert _compute_icp_size("50", None, "3") == "SMB"
+
+    def test_icp_size_commercial(self):
+        """200–499 employees → Commercial."""
+        from src.hubspot import _compute_icp_size
+        assert _compute_icp_size(None, "250", "1") == "Commercial"
 
 
 # ── Sheet read failure ────────────────────────────────────────────────────────
