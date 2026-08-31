@@ -39,7 +39,8 @@ COMPANY_PROPERTIES = [
     "hubspot_owner_id",
     "icp",
     "total_funding",
-    "numberofemployees",
+    "employee_count",       # custom "R.Employee count" — filled by sales team
+    "numberofemployees",    # standard HubSpot auto-enriched — fallback only
     "r__size_of_sales_team",
     "l1_qualified__",
     "l2_qualified__",
@@ -65,7 +66,7 @@ COLUMN_MAP = [
     ("F",  "ICP - Segment",                      "company",  "icp",                               "icp_segment"),
     ("G",  "ICP - Size",                         "computed", "icp_size",                          "passthrough"),
     ("H",  "Funding",                            "company",  "total_funding",                     "number"),
-    ("I",  "Employee Count",                     "company",  "numberofemployees",                 "number"),
+    ("I",  "Employee Count",                     "computed", "employee_count_merged",             "number"),
     ("J",  "Size of Sales Team",                 "company",  "r__size_of_sales_team",             "number"),
     ("K",  "Job Title of Champion",              "company",  "r_l2_qualification_comments_form",  "passthrough"),
     ("L",  "L1 Qualified? [ICP]",                "company",  "l1_qualified__",                    "l1_qualified"),

@@ -198,6 +198,23 @@ class TestWriteRangeNeverColA:
             assert idx > 1, f"Column {col_letter!r} maps to index {idx} — that is column A!"
 
 
+def test_employee_count_in_company_properties():
+    """Custom employee_count property must be fetched on every company lookup."""
+    from src.mapping import COMPANY_PROPERTIES
+    assert "employee_count" in COMPANY_PROPERTIES
+
+
+def test_col_i_uses_computed_employee_count_merged():
+    """Col I must use computed source so the fallback logic in hubspot.py applies."""
+    from src.mapping import COLUMN_MAP
+    cols = {entry[0]: entry for entry in COLUMN_MAP}
+    assert "I" in cols, "Col I missing from COLUMN_MAP"
+    col, header, source, prop, formatter = cols["I"]
+    assert source == "computed", f"Col I source should be 'computed', got {source!r}"
+    assert prop == "employee_count_merged"
+    assert formatter == "number"
+
+
 def test_amount_in_deal_properties():
     """HubSpot amount property must be fetched on every deal."""
     from src.mapping import DEAL_PROPERTIES
