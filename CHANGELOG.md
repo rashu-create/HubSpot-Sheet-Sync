@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-09-01 — Employee Count property fix + ICP size fallback
+
+### Fixed — `src/mapping.py`
+- `COMPANY_PROPERTIES`: Added `"employee_count"` (custom "R.Employee count" property, filled by the sales team). `"numberofemployees"` kept as fallback.
+- Col I `COLUMN_MAP` entry: changed from `source="company"` / `prop="numberofemployees"` → `source="computed"` / `prop="employee_count_merged"`.
+
+### Fixed — `src/hubspot.py`
+- Added `_compute_employee_count_merged(company_props)` helper: returns `employee_count` if set, else `numberofemployees`, else `""`.
+- Added `_compute_icp_size(employee_count, numberofemployees, sales_team)` helper: uses same fallback for Enterprise/Commercial/SMB/Startup buckets.
+- `get_row_data()` now sets `computed["employee_count_merged"]` and delegates ICP size to `_compute_icp_size()`. Old inline ICP logic removed.
+- Added `fmt_passthrough` to imports from `mapping`.
+
+### Fixed — `tests/test_sync.py`
+- Added `TestEmployeeCountMerge` (9 tests): merge priority, fallback, empty-string fallback, ICP size thresholds.
+- Fixed pre-existing stale tests: `test_sdr_injected_into_af_column` → `test_sdr_injected_into_ag_column` (sync injects SDR into col AG, not AF).
+
+### Root cause
+Two HubSpot company properties exist for employee count:
+- `employee_count` — custom "R.Employee count", manually filled by the sales team ✓
+- `numberofemployees` — standard HubSpot auto-enriched field, often blank for developer-tool companies ✗ (was being read)
+
+The code was reading `numberofemployees` (blank), ignoring `employee_count` (filled). ICP size had the same bug.
+
+The "300 in Funding for sarvam.ai" issue is a HubSpot data entry error (`total_funding` field has 300 instead of actual funding). Correct that field directly in HubSpot.
+
+**Verification:** 68/68 tests pass. Deployed to VM. Sync confirmed populating col I from `employee_count`.
+
+---
+
 ## 2026-08-22 — Deal Amount → column AN
 
 ### Added — `src/mapping.py`
