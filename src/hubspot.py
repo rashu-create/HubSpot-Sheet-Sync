@@ -741,6 +741,17 @@ def _compute_icp_size(
         return "Startup"
 
 
+def _compute_qualified(company_props: dict) -> str:
+    """Return 'Yes' if sales team size > 0 or total funding > $5M, else 'No'."""
+    sales_size = _parse_int(company_props.get("r__size_of_sales_team"))
+    funding_raw = company_props.get("total_funding") or ""
+    try:
+        funding = float(str(funding_raw).replace(",", "").strip()) if funding_raw else 0.0
+    except (ValueError, TypeError):
+        funding = 0.0
+    return "Yes" if (sales_size > 0 or funding > 5_000_000) else "No"
+
+
 # ── Main entry point ──────────────────────────────────────────────────────────
 
 def get_row_data(domain: str) -> dict | None:
@@ -886,6 +897,9 @@ def get_row_data(domain: str) -> dict | None:
             computed["still_active"] = "Pushed Out"
         else:
             computed["still_active"] = "Yes"
+
+        # Qualified: sales team size > 0 OR funding > $5M
+        computed["qualified"] = _compute_qualified(company_props)
 
         # 5. Build output dict by walking COLUMN_MAP
         result: dict[str, str] = {}

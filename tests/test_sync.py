@@ -285,6 +285,41 @@ class TestEmployeeCountMerge:
         assert _compute_icp_size(None, "250", "1") == "Commercial"
 
 
+# ── Qualified helper (sales_team > 0 OR funding > $5M) ────────────────────────
+
+class TestComputeQualified:
+    """_compute_qualified returns 'Yes' if sales_team > 0 OR funding > $5M."""
+
+    def test_yes_when_sales_team_nonzero(self):
+        from src.hubspot import _compute_qualified
+        assert _compute_qualified({"r__size_of_sales_team": "5", "total_funding": "0"}) == "Yes"
+
+    def test_yes_when_funding_above_5m(self):
+        from src.hubspot import _compute_qualified
+        assert _compute_qualified({"r__size_of_sales_team": "0", "total_funding": "6000000"}) == "Yes"
+
+    def test_no_when_both_zero(self):
+        from src.hubspot import _compute_qualified
+        assert _compute_qualified({"r__size_of_sales_team": "0", "total_funding": "0"}) == "No"
+
+    def test_no_when_both_blank(self):
+        from src.hubspot import _compute_qualified
+        assert _compute_qualified({}) == "No"
+
+    def test_yes_when_both_met(self):
+        from src.hubspot import _compute_qualified
+        assert _compute_qualified({"r__size_of_sales_team": "10", "total_funding": "10000000"}) == "Yes"
+
+    def test_no_when_funding_exactly_5m(self):
+        from src.hubspot import _compute_qualified
+        # Strictly greater than $5M required — exactly 5M is "No"
+        assert _compute_qualified({"r__size_of_sales_team": "0", "total_funding": "5000000"}) == "No"
+
+    def test_no_when_props_are_none(self):
+        from src.hubspot import _compute_qualified
+        assert _compute_qualified({"r__size_of_sales_team": None, "total_funding": None}) == "No"
+
+
 # ── Sheet read failure ────────────────────────────────────────────────────────
 
 class TestSheetReadFailure:
