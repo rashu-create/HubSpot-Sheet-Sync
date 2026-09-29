@@ -221,12 +221,34 @@ def test_amount_in_deal_properties():
     assert "amount" in DEAL_PROPERTIES
 
 
-def test_column_an_in_column_map():
-    """Column AN must be mapped to deal amount."""
+def test_column_ao_in_column_map():
+    """Column AO must be mapped to deal amount (shifted from AN after Qualified inserted at AI)."""
     from src.mapping import COLUMN_MAP
     cols = {entry[0]: entry for entry in COLUMN_MAP}
-    assert "AN" in cols, "AN column entry missing from COLUMN_MAP"
-    col, header, source, prop, formatter = cols["AN"]
+    assert "AO" in cols, "AO column entry missing from COLUMN_MAP"
+    col, header, source, prop, formatter = cols["AO"]
     assert source == "deal"
     assert prop == "amount"
     assert formatter == "number"
+
+
+def test_column_ai_in_column_map():
+    """Column AI must be the Qualified computed column."""
+    from src.mapping import COLUMN_MAP
+    cols = {entry[0]: entry for entry in COLUMN_MAP}
+    assert "AI" in cols, "AI Qualified column missing from COLUMN_MAP"
+    col, header, source, prop, formatter = cols["AI"]
+    assert header == "Qualified"
+    assert source == "computed"
+    assert prop == "qualified"
+    assert formatter == "passthrough"
+
+
+def test_column_aj_is_closure_month():
+    """Closure Month must shift from AI to AJ after inserting Qualified at AI."""
+    from src.mapping import COLUMN_MAP
+    cols = {entry[0]: entry for entry in COLUMN_MAP}
+    assert "AJ" in cols, "AJ Closure Month missing from COLUMN_MAP"
+    col, header, source, prop, formatter = cols["AJ"]
+    assert prop == "closedate"
+    assert formatter == "month_year"
