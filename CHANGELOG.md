@@ -1,6 +1,29 @@
 # Changelog
 
+## 2026-10-05 — Employee Count priority reversed: `numberofemployees` first
+
+### Fixed — `src/hubspot.py`, `src/mapping.py`
+- `_compute_employee_count_merged` and `_compute_icp_size` now read `numberofemployees` first and fall back to `employee_count`. This **reverses** the 2026-09-01 change below.
+
+### Root cause
+The 2026-09-01 change assumed `numberofemployees` was "often blank" and that `employee_count` ("R.Employee count") was kept up to date by the sales team. HubSpot property history showed the opposite (456 pipeline companies):
+- `employee_count` is a **one-time CSV IMPORT from Feb 2024** (97 companies, never updated since).
+- `numberofemployees` is set for 449 companies, mostly via FORM; 408 were updated in 2026.
+- No company had `employee_count` without `numberofemployees`, so the old fallback never helped.
+- The two disagreed on 95 companies; `numberofemployees` was newer on 86 (e.g. anyscale.com: 290 stale vs 125 live).
+
+### Impact
+- Col I (Employee Count) changes for ~95 companies.
+- Col G (ICP Size) changes bucket for 19 companies (e.g. anthropic.com, coder.com → Enterprise; anyscale.com → under 200). `ae-kpi-tracker` "By ICP Size" tabs read col G and shift accordingly.
+
+### Tests
+- Flipped the priority tests in `TestEmployeeCountMerge`; added a stale-`employee_count` regression test (78 tests pass).
+
+---
+
 ## 2026-09-01 — Employee Count property fix + ICP size fallback
+
+> ⚠️ **Superseded 2026-10-05:** the priority order described here (employee_count first) was wrong — see the entry above.
 
 ### Fixed — `src/mapping.py`
 - `COMPANY_PROPERTIES`: Added `"employee_count"` (custom "R.Employee count" property, filled by the sales team). `"numberofemployees"` kept as fallback.

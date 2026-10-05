@@ -707,15 +707,16 @@ def _compute_owner_first_names(deal_props: dict, token: str) -> str:
 # ── Employee count + ICP size helpers ────────────────────────────────────────
 
 def _compute_employee_count_merged(company_props: dict) -> str:
-    """Return employee_count if set, else numberofemployees, else ''.
+    """Return numberofemployees if set, else employee_count, else ''.
 
-    employee_count is the custom 'R.Employee count' property filled by the
-    sales team. numberofemployees is the standard HubSpot auto-enriched
-    property that is often blank for developer-tool companies.
+    numberofemployees is the standard HubSpot property, kept current by form
+    submissions and enrichment (408 of 449 pipeline companies updated in 2026).
+    employee_count is the custom 'R.Employee count' — a one-time Feb-2024 CSV
+    import that is never updated, so it is only a fallback.
     """
-    val = fmt_passthrough(company_props.get("employee_count"))
+    val = fmt_passthrough(company_props.get("numberofemployees"))
     if not val:
-        val = fmt_passthrough(company_props.get("numberofemployees"))
+        val = fmt_passthrough(company_props.get("employee_count"))
     return val
 
 
@@ -726,10 +727,10 @@ def _compute_icp_size(
 ) -> str:
     """Return ICP size bucket: Enterprise ≥500, Commercial ≥200, SMB <200 & sales_team ≥2, else Startup.
 
-    Reads employee_count (custom, sales-team-filled) first; falls back to
-    numberofemployees (standard auto-enriched).
+    Reads numberofemployees (standard, kept current) first; falls back to
+    employee_count (custom, stale 2024 import).
     """
-    employees = _parse_int(employee_count or numberofemployees)
+    employees = _parse_int(numberofemployees or employee_count)
     sales = _parse_int(sales_team)
     if employees >= 500:
         return "Enterprise"
@@ -877,7 +878,7 @@ def get_row_data(domain: str) -> dict | None:
             sales_team=company_props.get("r__size_of_sales_team"),
         )
 
-        # Employee Count: custom property first, standard auto-enriched as fallback
+        # Employee Count: standard numberofemployees first, stale custom employee_count as fallback
         computed["employee_count_merged"] = _compute_employee_count_merged(company_props)
 
         # Next Steps: management override → else form value

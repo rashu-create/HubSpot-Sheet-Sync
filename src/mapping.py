@@ -39,8 +39,8 @@ COMPANY_PROPERTIES = [
     "hubspot_owner_id",
     "icp",
     "total_funding",
-    "employee_count",       # custom "R.Employee count" — filled by sales team
-    "numberofemployees",    # standard HubSpot auto-enriched — fallback only
+    "numberofemployees",    # standard HubSpot property, kept current — primary
+    "employee_count",       # custom "R.Employee count" — stale 2024 import, fallback only
     "r__size_of_sales_team",
     "l1_qualified__",
     "l2_qualified__",

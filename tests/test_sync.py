@@ -239,35 +239,44 @@ class TestEmployeeCountMerge:
             "r__size_of_sales_team": sales_team,
         }
 
-    def test_employee_count_primary(self):
-        """employee_count is used when set, even if numberofemployees is also set."""
-        from src.hubspot import _compute_employee_count_merged
-        assert _compute_employee_count_merged(self._props("300", "500")) == "300"
+    def test_numberofemployees_primary(self):
+        """numberofemployees is used when set, even if employee_count is also set.
 
-    def test_numberofemployees_fallback(self):
-        """numberofemployees is used when employee_count is None/empty."""
+        employee_count is a stale Feb-2024 CSV import; numberofemployees is the
+        live property (anyscale.com: employee_count=290, numberofemployees=125).
+        """
         from src.hubspot import _compute_employee_count_merged
-        assert _compute_employee_count_merged(self._props(None, "500")) == "500"
+        assert _compute_employee_count_merged(self._props("290", "125")) == "125"
 
-    def test_empty_string_employee_count_falls_back(self):
-        """Empty string employee_count triggers fallback to numberofemployees."""
+    def test_employee_count_fallback(self):
+        """employee_count is used only when numberofemployees is None."""
         from src.hubspot import _compute_employee_count_merged
-        assert _compute_employee_count_merged(self._props("", "500")) == "500"
+        assert _compute_employee_count_merged(self._props("300", None)) == "300"
+
+    def test_empty_string_numberofemployees_falls_back(self):
+        """Empty string numberofemployees triggers fallback to employee_count."""
+        from src.hubspot import _compute_employee_count_merged
+        assert _compute_employee_count_merged(self._props("300", "")) == "300"
 
     def test_both_empty_returns_empty(self):
         """Both None → empty string."""
         from src.hubspot import _compute_employee_count_merged
         assert _compute_employee_count_merged(self._props(None, None)) == ""
 
-    def test_icp_size_uses_employee_count_over_numberofemployees(self):
-        """ICP size is computed from employee_count when set, ignoring numberofemployees."""
+    def test_icp_size_uses_numberofemployees_over_employee_count(self):
+        """ICP size is computed from numberofemployees when set, ignoring employee_count."""
         from src.hubspot import _compute_icp_size
-        assert _compute_icp_size("600", "50", "0") == "Enterprise"
+        assert _compute_icp_size("50", "600", "0") == "Enterprise"
 
-    def test_icp_size_falls_back_to_numberofemployees(self):
-        """ICP size falls back to numberofemployees when employee_count is blank."""
+    def test_icp_size_stale_employee_count_does_not_win(self):
+        """anyscale.com: stale employee_count=290 must not make it Commercial when live count is 125."""
         from src.hubspot import _compute_icp_size
-        assert _compute_icp_size(None, "300", "0") == "Commercial"
+        assert _compute_icp_size("290", "125", "0") == "Startup"
+
+    def test_icp_size_falls_back_to_employee_count(self):
+        """ICP size falls back to employee_count when numberofemployees is blank."""
+        from src.hubspot import _compute_icp_size
+        assert _compute_icp_size("300", None, "0") == "Commercial"
 
     def test_icp_size_startup_when_both_blank(self):
         """Both blank → 0 employees, no sales team → Startup."""
@@ -277,7 +286,7 @@ class TestEmployeeCountMerge:
     def test_icp_size_smb(self):
         """<200 employees and sales_team ≥2 → SMB."""
         from src.hubspot import _compute_icp_size
-        assert _compute_icp_size("50", None, "3") == "SMB"
+        assert _compute_icp_size(None, "50", "3") == "SMB"
 
     def test_icp_size_commercial(self):
         """200–499 employees → Commercial."""
