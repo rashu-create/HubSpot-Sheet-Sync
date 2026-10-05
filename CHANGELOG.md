@@ -19,6 +19,40 @@ The 2026-09-01 change assumed `numberofemployees` was "often blank" and that `em
 ### Tests
 - Flipped the priority tests in `TestEmployeeCountMerge`; added a stale-`employee_count` regression test (78 tests pass).
 
+### Rollout & verification
+- Commit `0d68afa`; pushed to `main` together with the three 2026-09-29 Qualified-column commits (previously unpushed). Deployed with `deploy/deploy.sh` at 09:26 UTC.
+- Manual sync at 09:28 UTC: 424/430 rows synced, 0 errors, 201s. Verified against HubSpot: all 93 disagreeing companies present in the sheet now show `numberofemployees` in col I (anyscale.com 290 → 125, anthropic.com → 4,345, coder.com → 644); 0 still wrong.
+- `ae-kpi-tracker` `/api/sync` run afterwards to refresh the Weekly tracker (analysis tabs are live formulas and recalculated on their own). No formula errors in any tab either service writes. `/api/setup` was not needed (no formula/column change).
+- 6 rows skipped on that sync: namespace.so, kilo.ai, corellium.com, amd.com, usegit.ai and scaleops.com. scaleops.com was new on this list and is unrelated to this change (row matching is unaffected); reported fixed by Rashu 2026-10-05 — to be confirmed on the next 08:00 UTC sync.
+
+---
+
+## 2026-09-29 — "Qualified" column inserted at AI; AI–AN shifted right by one
+
+### Added — `src/hubspot.py`
+- `_compute_qualified(company_props)`: returns `"Yes"` if `r__size_of_sales_team` > 0 **or** `total_funding` > $5,000,000 (strictly greater; exactly $5M is `"No"`), else `"No"`. Blank/None/unparseable values count as 0. Wired into `get_row_data()` as `computed["qualified"]`.
+
+### Changed — `src/mapping.py` (`COLUMN_MAP`)
+| Col | Before | After |
+|---|---|---|
+| AI | Closure Month | **Qualified** (computed) |
+| AJ | Opportunity loss reason | Closure Month |
+| AK | Opportunity loss reason deepdive | Opportunity loss reason |
+| AL | SKIP — Trial loss reason (manual) | Opportunity loss reason deepdive |
+| AM | SKIP — Intent signals (manual) | SKIP — Trial loss reason (manual) |
+| AN | Deal Amount | SKIP — Intent signals (manual) |
+| AO | `ae-kpi-tracker` dedup flag | **Deal Amount** |
+| AP | — | `ae-kpi-tracker` dedup flag (`Is First?`) |
+
+### Added — `scripts/insert_qualified_column.py`
+- One-time script that inserts the blank column at AI in "Sales Pipeline 2026" and writes the `Qualified` header. **Run once only** — a second run inserts another blank column.
+
+### Cross-project change
+- `ae-kpi-tracker` `config.py`: `AMOUNT_COL` `"AN"` → `"AO"`, `DEDUP_COL` `"AO"` → `"AP"` (see its CHANGELOG). Verified 2026-10-05: the dedup column header `Is First?` sits at AP1 in the live sheet.
+
+### Tests
+- `TestComputeQualified` (7 tests), plus mapping tests for AI (Qualified), AJ (Closure Month) and AO (Deal Amount; renamed from the AN test). 77 tests passed.
+
 ---
 
 ## 2026-09-01 — Employee Count property fix + ICP size fallback
@@ -53,6 +87,8 @@ The "300 in Funding for sarvam.ai" issue is a HubSpot data entry error (`total_f
 ---
 
 ## 2026-08-22 — Deal Amount → column AN
+
+> ℹ️ **Moved 2026-09-29:** Deal Amount now lives in column **AO** (Qualified was inserted at AI) — see the 2026-09-29 entry.
 
 ### Added — `src/mapping.py`
 - `"amount"` added to `DEAL_PROPERTIES` so HubSpot deal amount is fetched on every sync.
