@@ -352,3 +352,24 @@ class TestSheetReadFailure:
         assert result.rows_total == 0
         assert len(result.errors) > 0
         assert any("Pipeline domain read failed" in e for e in result.errors)
+
+
+# ── Stage label cache ─────────────────────────────────────────────────────────
+
+class TestStageLabelStrip:
+    def test_trailing_space_in_hubspot_stage_label_is_trimmed(self):
+        """HubSpot's Trial stage label is literally 'Trial ' — it must not reach the sheet."""
+        from src import hubspot
+
+        resp = MagicMock(status_code=200)
+        resp.json.return_value = {"results": [
+            {"id": "1", "label": "Trial "},
+            {"id": "2", "label": "Closed Won"},
+        ]}
+        hubspot._STAGE_LABEL_CACHE.clear()
+        try:
+            with patch("src.hubspot._get", return_value=resp):
+                hubspot._get_stage_labels("pipe", "token")
+            assert hubspot._STAGE_LABEL_CACHE == {"1": "Trial", "2": "Closed Won"}
+        finally:
+            hubspot._STAGE_LABEL_CACHE.clear()

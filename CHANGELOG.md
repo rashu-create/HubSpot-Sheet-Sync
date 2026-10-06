@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-06 — Stage labels trimmed (`"Trial "` → `"Trial"`)
+
+### Fixed — `src/hubspot.py`
+- `_get_stage_labels()` now stores `stage["label"].strip()`. HubSpot's Trial stage label is literally `"Trial "` (trailing space), which was written as-is into col T for 20 deals. Other stage labels are unchanged; `still_active` substring checks are unaffected.
+
+### Notes
+- `ae-kpi-tracker` keeps its `"Trial*"` criterion (`_stage_crit()`); it still matches `"Trial"`, so it needs no change. "Trial" is the only one of the 13 stage labels that starts with "Trial".
+- No other project matches on the string `"Trial "`.
+- Takes effect in the sheet on the next sync (manual `/api/sync` or the 08:00 UTC run).
+
+### Tests
+- `TestStageLabelStrip` (79 tests pass).
+
+---
+
 ## 2026-10-05 — Employee Count priority reversed: `numberofemployees` first
 
 ### Fixed — `src/hubspot.py`, `src/mapping.py`

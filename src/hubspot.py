@@ -199,7 +199,8 @@ def _get_stage_labels(pipeline_id: str, token: str) -> None:
         return
 
     for stage in resp.json().get("results", []):
-        _STAGE_LABEL_CACHE[stage["id"]] = stage["label"]
+        # HubSpot's Trial stage label is "Trial " (trailing space) — strip it so col T is clean.
+        _STAGE_LABEL_CACHE[stage["id"]] = stage["label"].strip()
     logger.info("HubSpot stage labels loaded: %d stages", len(_STAGE_LABEL_CACHE))
 
 
