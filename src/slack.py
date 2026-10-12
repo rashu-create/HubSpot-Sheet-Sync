@@ -36,6 +36,12 @@ def notify_success(result: RunResult) -> None:
         f"{result.rows_skipped} skipped (no HubSpot match)"
     ]
 
+    if result.forecast_deals:
+        lines.append(
+            f"📈 Sales Forecast tabs refreshed (Overview + AEs): {result.forecast_deals} deals, "
+            f"${result.forecast_weighted:,.0f} weighted (current + next month)"
+        )
+
     if result.misses:
         preview = result.misses[:5]
         lines.append(f"Domains with no HubSpot company ({len(result.misses)} total):")

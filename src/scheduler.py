@@ -50,6 +50,8 @@ def _result_to_dict(result: RunResult, run_type: str = "SYNC") -> dict:
         "rows_skipped": result.rows_skipped,
         "errors": result.errors,
         "misses": result.misses,
+        "forecast_deals": result.forecast_deals,
+        "forecast_weighted": round(result.forecast_weighted),
     }
 
 

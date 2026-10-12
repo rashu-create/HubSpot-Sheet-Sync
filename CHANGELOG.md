@@ -1,5 +1,46 @@
 # Changelog
 
+## 2026-10-12 — "Sales Forecast - AEs" tab; Overview tab renamed
+
+### Added — `src/forecast.py` (`build_ae_grid`), `src/sheets.py`, `src/slack.py`
+- New tab **Sales Forecast - AEs**: a summary row per AE (+ Total) followed by one "<AE>'s Pipeline" list per **primary owner**, covering the current and next month (same window and membership rules as the Overview). Columns: Company, Type, Owner, Stage, Amount, Weighted, Close date, Tier, Probability, Next steps, HubSpot link. Rows sort by month, then Closed Won → High → Medium → Low, then amount. **Closed Won rows are green.** Lost / Pushed Out deals are not shown. Weighted = amount x deal-stage probability, as on the Overview.
+- Both tabs are built from the **same fetched deals** (one HubSpot fetch per month), so the AE Total always equals the Overview totals. Live check 2026-10-12: 28 deals, $370,200 weighted, $43,800 closed won on both.
+- `write_forecast_tab` gained `col_widths` and `percent_cols`, new `won` / `money` style kinds, and a clear error when a tab is missing ("tab '...' not found in the sheet (was it renamed?)").
+- Slack success line now reads "Sales Forecast tabs refreshed (Overview + AEs)". An AEs-tab failure is reported as `Forecast: AEs tab: ...`; the Overview is already written by then.
+
+### Changed
+- **Formatting (both tabs):** Calibri, size 10 everywhere (title and KPI values used to be 14 / 12). The writer now resets the tab to Calibri 10, and per-style formats use field-level masks so they never overwrite the font.
+- **Removed from both tabs:** the "Rewritten from HubSpot on every sync - do not type in this tab." line. **Removed from the Overview:** the Piyush reconciliation footer ("HubSpot's Sales Forecast screen excludes Piyush ..."). Piyush's deals are still included in all totals; only the explanatory note is gone. (`OFF_SCREEN_OWNER` deleted.)
+- The Overview tab is now looked up as **`Sales Forecast - Overview`** (was `Sales Forecast`; renamed in the sheet by Rashu). **Until this version is deployed, the VM's 08:00 UTC sync fails at the forecast step with a missing-tab error** (the row sync is unaffected).
+
+### Tests
+- 134 tests (was 117): `TestBuildAeGrid` (reconciliation with the Overview blocks, one section per primary owner, each deal once, sort order, green rows only for Closed Won, year-safe title, empty month), `TestWriteForecastTab`, and run-level tests for both tab names / AEs-failure labelling / one fetch per month.
+
+---
+## 2026-10-09 — "Sales Forecast" tab, refreshed by every sync
+
+### Added — `src/forecast.py`, `src/sheets.py` (`write_forecast_tab`), `src/sync.py`
+- New tab **Sales Forecast** in "Sales Pipeline - 2026 - HubSpot Synced", rebuilt from HubSpot at the end of every sync (daily 08:00 UTC + manual `/api/sync`). Current + next month side by side (rolls on the 1st, year-safe). Layout follows the manager's `Oct'26 Pipeline` tab: KPI strip, Closed till date, High 80% / Medium 50% / Low 20% (subtotals in the section header), per-owner table, reconciliation footer.
+- **Read-only against HubSpot** (search + batch reads). The tab is fully owned by the sync: values AND formatting are cleared and rewritten each run, so manual edits in it are lost (the tab says so).
+- Rules, verified against HubSpot's own Sales Forecast screen (Oct 2026): deal in Sales Pipeline, `closedate` in the month, and either stage label "Closed Won" or still open with `hs_manual_forecast_category` HIGH/MEDIUM/LOW. Closed Lost / Irrelevant / Pushed Out are excluded whatever their category says. **Weighted = amount x deal-stage probability** (not the tier %), Closed Won at 100%.
+- Piyush's deals are included; HubSpot's screen omits him, so the footer reconciles (Oct: screen = 18 deals / $226,200 weighted / $43,800 closed won; with Piyush's Nasiko = 19 / $262,200).
+- Stage logic uses stage **labels**, never IDs: id `closedwon` is the *Pricing Discussion* stage in this portal.
+- Isolated step: a forecast failure is appended to `errors` as `Forecast: ...` and never stops the row sync. `RunResult` gained `forecast_deals` / `forecast_weighted` (run history + Slack success line).
+- Close date is written as text (leading apostrophe) because `USER_ENTERED` otherwise turns "7 Oct" into a date serial.
+
+### Added — `scripts/forecast_delta.py` (read-only, local only, not deployed)
+- Compares the manager's `Oct'26 Pipeline` tab (sheet ID from `MANAGER_SHEET_ID` or `~/weekly-sales-tracker/.env` `PIPELINE_SHEET_ID`) with HubSpot's forecast: sheet deals missing from the forecast with a reason code (`NO_CLOSE_DATE`, `OTHER_MONTH`, `STAGE_CLOSED`, `CLOSED_WON_ELSEWHERE`, `CATEGORY_OMIT`, `NO_DEAL`), HubSpot forecast deals missing from the sheet (and whether they sit in its "Broader" section), and tier/amount mismatches. Matches on deal name, company name and company domain. Writes CSVs; writes nothing to HubSpot or either sheet.
+- Findings 2026-10-09: 41 sheet deals, 14 in forecast; of 27 missing, 14 had a category but no close date. Re-check 2026-10-12 after AEs updated HubSpot: 26 missing; 8 still without a close date (Stakater, Akamai, Cognee, FastRouter, GitGuardian, CKEditor, Bitdrift, Seventh State).
+
+### Notes
+- **Meeting Done is NOT excluded by stage.** Only closed stages (Closed Lost / Irrelevant / Pushed Out / Meeting Didn't Happen) are excluded; an open deal in Meeting Done appears if it has a forecast category and a close date in the month. (Lamatic/Navtech are out because of category OMIT, not stage.)
+- The tab refreshes **once a day** (08:00 UTC = 1:30 PM IST), not twice.
+- HubSpot forecast categories/close dates change during the day, so any comparison is a point-in-time snapshot (Oct 12: 19 deals, $249,000 weighted incl. Piyush; $213,000 / 18 deals excl. Piyush).
+
+### Tests
+- `tests/test_forecast.py` (38 tests). New `tests/conftest.py` autouse fixture stubs `hubspot.prebuild_deal_map` and the forecast step so unit tests never touch HubSpot/Sheets (the old sync tests each did a real pipeline crawl; suite is 117 tests in ~2 s, was ~30 s per sync test). `pytest.ini` registers the `real_forecast` marker.
+
+---
 ## 2026-10-06 — Stage labels trimmed (`"Trial "` → `"Trial"`)
 
 ### Fixed — `src/hubspot.py`

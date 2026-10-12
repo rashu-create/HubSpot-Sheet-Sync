@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import src.forecast as forecast
 import src.hubspot as hubspot
 import src.sheets as sheets
 from src.mapping import normalize_domain
@@ -38,6 +39,8 @@ class RunResult:
     rows_skipped: int   # no HubSpot match
     errors: list[str] = field(default_factory=list)
     misses: list[str] = field(default_factory=list)  # domains with no HubSpot company
+    forecast_deals: int = 0          # deals shown on the Sales Forecast tab (all months)
+    forecast_weighted: float = 0.0   # their weighted amount
 
 
 def run_sync(dry_run: bool = False) -> RunResult:
@@ -60,6 +63,7 @@ def run_sync(dry_run: bool = False) -> RunResult:
     errors: list[str] = []
     misses: list[str] = []
     updates: list[dict] = []
+    forecast_result = forecast.ForecastResult()
 
     try:
         # 1. Build SDR map
@@ -148,6 +152,14 @@ def run_sync(dry_run: bool = False) -> RunResult:
         logger.error("Sync failed unexpectedly: %s", exc, exc_info=True)
         errors.append(f"Unexpected sync failure: {exc}")
 
+    # 6. Sales Forecast tab — isolated: a failure here is recorded in `errors` and never
+    #    affects the row sync above. (If the pipeline read failed we returned early, above.)
+    try:
+        forecast_result = forecast.run_forecast_sync(dry_run=dry_run)
+    except Exception as exc:
+        logger.error("Forecast refresh failed: %s", exc, exc_info=True)
+        errors.append(f"Forecast: {exc}")
+
     finished_at = datetime.utcnow()
 
     result = RunResult(
@@ -158,6 +170,8 @@ def run_sync(dry_run: bool = False) -> RunResult:
         rows_skipped=rows_skipped,
         errors=errors,
         misses=misses,
+        forecast_deals=forecast_result.deals,
+        forecast_weighted=forecast_result.weighted,
     )
 
     logger.info(

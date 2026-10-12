@@ -158,6 +158,117 @@ def build_sdr_map() -> dict[str, str]:
     return sdr_map
 
 
+_LAVENDER = {"red": 0.851, "green": 0.824, "blue": 0.914}   # #d9d2e9, same as the manager's tab
+_GREY = {"red": 0.4, "green": 0.4, "blue": 0.4}
+_GREEN = {"red": 0.416, "green": 0.659, "blue": 0.31}        # #6aa84f, Closed Won rows (manager's tab)
+_CURRENCY = {"type": "CURRENCY", "pattern": "$#,##0"}
+_PERCENT = {"type": "PERCENT", "pattern": "0%"}
+_BASE_TEXT = {"fontFamily": "Calibri", "fontSize": 10}       # every cell of a forecast tab
+_KPI_MONEY_COLS = (0, 2, 4)                                  # closed won / weighted / open
+_COL_WIDTHS = [170, 110, 150, 200, 90, 90, 80, 330, 60]      # per block column, px
+
+
+def write_forecast_tab(
+    tab_name: str,
+    grid: list[list],
+    styles: list[tuple[str, int, int, int]],
+    block_width: int,
+    gap: int,
+    money_cols: list[int],
+    col_widths: list[int] | None = None,
+    percent_cols: list[int] = (),
+) -> None:
+    """Replace the entire contents and formatting of a sync-owned forecast tab.
+
+    The tab is owned by the sync: values and formats are cleared, `grid` is written at A1
+    (USER_ENTERED so HYPERLINK formulas work), then styles are applied.
+    styles: (kind, row, col_start, col_end), 0-based, col_end exclusive.
+    Touches ONLY `tab_name` - never the Sales Pipeline 2026 tab or any other.
+    `col_widths` (px, per block column) defaults to the Overview layout; `percent_cols` get a 0% format.
+    """
+    sheet_id = os.getenv("PIPELINE_SHEET_ID", "").strip()
+    if not sheet_id:
+        raise RuntimeError("PIPELINE_SHEET_ID is not set")
+
+    spreadsheet = _get_client().open_by_key(sheet_id)
+    try:
+        ws = spreadsheet.worksheet(tab_name)
+    except gspread.exceptions.WorksheetNotFound as exc:
+        raise RuntimeError(f"tab '{tab_name}' not found in the sheet (was it renamed?)") from exc
+    widths = col_widths or _COL_WIDTHS
+    width = max((len(r) for r in grid), default=0)
+    if len(grid) > ws.row_count or width > ws.col_count:
+        ws.resize(rows=max(len(grid) + 20, ws.row_count), cols=max(width, ws.col_count))
+
+    gid = ws.id
+    whole = {"sheetId": gid}
+
+    def cell_fmt(row: int, c0: int, c1: int, fmt: dict, fields: str) -> dict:
+        """`fields` are sub-field paths (e.g. "textFormat.bold") so the Calibri/10 base is never overwritten."""
+        mask = ",".join(f"userEnteredFormat.{f}" for f in fields.split(","))
+        return {"repeatCell": {
+            "range": {"sheetId": gid, "startRowIndex": row, "endRowIndex": row + 1,
+                      "startColumnIndex": c0, "endColumnIndex": c1},
+            "cell": {"userEnteredFormat": fmt}, "fields": mask}}
+
+    ws.clear()
+    # Reset every format on the tab, then give the whole sheet Calibri 10.
+    requests: list[dict] = [{"repeatCell": {"range": whole, "cell": {"userEnteredFormat": {"textFormat": _BASE_TEXT}},
+                                            "fields": "userEnteredFormat"}}]
+
+    # Currency on money columns of every block for the full height, then per-kind styles on top.
+    n_blocks = (width + gap) // (block_width + gap) if width else 0
+    for b in range(n_blocks):
+        off = b * (block_width + gap)
+        for mc in money_cols:
+            requests.append({"repeatCell": {
+                "range": {"sheetId": gid, "startRowIndex": 0, "endRowIndex": len(grid),
+                          "startColumnIndex": off + mc, "endColumnIndex": off + mc + 1},
+                "cell": {"userEnteredFormat": {"numberFormat": _CURRENCY}},
+                "fields": "userEnteredFormat.numberFormat"}})
+        for pc in percent_cols:
+            requests.append({"repeatCell": {
+                "range": {"sheetId": gid, "startRowIndex": 0, "endRowIndex": len(grid),
+                          "startColumnIndex": off + pc, "endColumnIndex": off + pc + 1},
+                "cell": {"userEnteredFormat": {"numberFormat": _PERCENT}},
+                "fields": "userEnteredFormat.numberFormat"}})
+        for i, w in enumerate(widths[:block_width]):
+            requests.append({"updateDimensionProperties": {
+                "range": {"sheetId": gid, "dimension": "COLUMNS",
+                          "startIndex": off + i, "endIndex": off + i + 1},
+                "properties": {"pixelSize": w}, "fields": "pixelSize"}})
+
+    for kind, row, c0, c1 in styles:
+        if kind in ("title", "subtotal"):
+            requests.append(cell_fmt(row, c0, c1, {"textFormat": {"bold": True}}, "textFormat.bold"))
+        elif kind == "note":
+            requests.append(cell_fmt(row, c0, c1, {"textFormat": {"italic": True, "foregroundColor": _GREY}},
+                                     "textFormat.italic,textFormat.foregroundColor"))
+        elif kind == "kpi_label":
+            requests.append(cell_fmt(row, c0, c1, {"textFormat": {"bold": True, "foregroundColor": _GREY}},
+                                     "textFormat.bold,textFormat.foregroundColor"))
+        elif kind == "kpi_value":
+            requests.append(cell_fmt(row, c0, c1, {"textFormat": {"bold": True}}, "textFormat.bold"))
+            for mc in _KPI_MONEY_COLS:
+                requests.append(cell_fmt(row, c0 + mc, c0 + mc + 1, {"numberFormat": _CURRENCY}, "numberFormat"))
+        elif kind in ("header", "section"):
+            requests.append(cell_fmt(row, c0, c1, {"backgroundColor": _LAVENDER, "textFormat": {"bold": True}},
+                                     "backgroundColor,textFormat.bold"))
+        elif kind == "won":
+            requests.append(cell_fmt(row, c0, c1, {"textFormat": {"foregroundColor": _GREEN}},
+                                     "textFormat.foregroundColor"))
+        elif kind == "money":
+            requests.append(cell_fmt(row, c0, c1, {"numberFormat": _CURRENCY}, "numberFormat"))
+
+    spreadsheet.values_batch_update({
+        "valueInputOption": "USER_ENTERED",
+        "data": [{"range": f"'{tab_name}'!A1", "values": grid}],
+    })
+    spreadsheet.batch_update({"requests": requests})
+    logger.info("%s tab written: %d rows x %d cols, %d format requests",
+                tab_name, len(grid), width, len(requests))
+
+
 def write_pipeline_rows(updates: list[dict]) -> None:
     """Batch-write column values to specific rows in the pipeline sheet.
 
