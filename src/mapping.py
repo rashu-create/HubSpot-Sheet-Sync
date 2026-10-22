@@ -58,38 +58,42 @@ COMPANY_PROPERTIES = [
 # source: "deal" | "company" | "sdr"
 # col A (domain) is INPUT — NEVER written.
 
+# Layout since 2026-10-22: "Source of meeting (Muni Sheet)" moved from AG to E and the old E..AF shifted one column
+# right (AH onward unchanged). Letters live ONLY here — SOURCE_COL is what sync.py writes the source to.
+SOURCE_COL = "E"
+
 COLUMN_MAP = [
     # col B = Date of First Meeting — SKIP (manual)
     ("C",  "Opportunity?",                       "deal",     "opportunity",                       "passthrough"),
     ("D",  "Owner?",                             "computed", "owner_first_names",                 "passthrough"),
-    ("E",  "Priority",                           "deal",     "hs_priority",                       "capitalize"),
-    ("F",  "ICP - Segment",                      "company",  "icp",                               "icp_segment"),
-    ("G",  "ICP - Size",                         "computed", "icp_size",                          "passthrough"),
-    ("H",  "Funding",                            "company",  "total_funding",                     "number"),
-    ("I",  "Employee Count",                     "computed", "employee_count_merged",             "number"),
-    ("J",  "Size of Sales Team",                 "company",  "r__size_of_sales_team",             "number"),
-    ("K",  "Job Title of Champion",              "company",  "r_l2_qualification_comments_form",  "passthrough"),
-    ("L",  "L1 Qualified? [ICP]",                "company",  "l1_qualified__",                    "l1_qualified"),
-    ("M",  "L2 Qualified? [Seniority]",          "company",  "l2_qualified__",                    "l2_qualified"),
-    ("N",  "L3 Qualified? [Intent]",             "company",  "l3_qualified____cloned_",           "l3_qualified"),
-    ("O",  "L1 Qualification Comments",          "company",  "r_l1_qualification_comments_form",  "passthrough"),
-    ("P",  "L2 Qualification Comments",          "company",  "r_l2_qualification_comments_form",  "passthrough"),
-    ("Q",  "L3 Qualification Comments",          "company",  "r_l3_qualification_comments_form",  "passthrough"),
-    ("R",  "Next Steps",                         "computed", "next_steps_r",                      "passthrough"),
-    ("S",  "Due Date",                           "computed", "next_steps_s",                      "date_dmy"),
-    ("T",  "Stage",                              "deal",     "dealstage",                         "stage_label"),
-    ("U",  "Trial Stage",                        "deal",     "trial_status",                      "passthrough"),
-    ("V",  "Trial Start Date",                   "deal",     "trial_start_date",                  "date_dmy"),
-    ("W",  "Trial End Date",                     "deal",     "trial_end_date",                    "date_dmy"),
-    ("X",  "Notes from Call",                    "company",  "notes_from_call",                   "passthrough"),
-    # col Y = SKIP
-    ("Z",  "Conversion",                         "deal",     "conversion",                        "passthrough"),
-    ("AA", "Still active?",                      "computed", "still_active",                      "passthrough"),
-    ("AB", "Trial done?",                        "deal",     "trial_done",                        "trial_done"),
-    # cols AC, AD, AE = SKIP
-    # col AF = SKIP (Real Opportunity? — manual)
-    ("AG", "Source of meeting (Muni Sheet)",       "sdr",      "sdr_lookup",                        "passthrough"),
-    # col AH = SKIP (manual)
+    (SOURCE_COL, "Source of meeting (Muni Sheet)", "sdr",    "sdr_lookup",                        "passthrough"),
+    ("F",  "Priority",                           "deal",     "hs_priority",                       "capitalize"),
+    ("G",  "ICP - Segment",                      "company",  "icp",                               "icp_segment"),
+    ("H",  "ICP - Size",                         "computed", "icp_size",                          "passthrough"),
+    ("I",  "Funding",                            "company",  "total_funding",                     "number"),
+    ("J",  "Employee Count",                     "computed", "employee_count_merged",             "number"),
+    ("K",  "Size of Sales Team",                 "company",  "r__size_of_sales_team",             "number"),
+    ("L",  "Job Title of Champion",              "company",  "r_l2_qualification_comments_form",  "passthrough"),
+    ("M",  "L1 Qualified? [ICP]",                "company",  "l1_qualified__",                    "l1_qualified"),
+    ("N",  "L2 Qualified? [Seniority]",          "company",  "l2_qualified__",                    "l2_qualified"),
+    ("O",  "L3 Qualified? [Intent]",             "company",  "l3_qualified____cloned_",           "l3_qualified"),
+    ("P",  "L1 Qualification Comments",          "company",  "r_l1_qualification_comments_form",  "passthrough"),
+    ("Q",  "L2 Qualification Comments",          "company",  "r_l2_qualification_comments_form",  "passthrough"),
+    ("R",  "L3 Qualification Comments",          "company",  "r_l3_qualification_comments_form",  "passthrough"),
+    ("S",  "Next Steps",                         "computed", "next_steps_r",                      "passthrough"),
+    ("T",  "Due Date",                           "computed", "next_steps_s",                      "date_dmy"),
+    ("U",  "Stage",                              "deal",     "dealstage",                         "stage_label"),
+    ("V",  "Trial Stage",                        "deal",     "trial_status",                      "passthrough"),
+    ("W",  "Trial Start Date",                   "deal",     "trial_start_date",                  "date_dmy"),
+    ("X",  "Trial End Date",                     "deal",     "trial_end_date",                    "date_dmy"),
+    ("Y",  "Notes from Call",                    "company",  "notes_from_call",                   "passthrough"),
+    # col Z = SKIP (Source of meeting (First HS))
+    ("AA", "Conversion",                         "deal",     "conversion",                        "passthrough"),
+    ("AB", "Still active?",                      "computed", "still_active",                      "passthrough"),
+    ("AC", "Trial done?",                        "deal",     "trial_done",                        "trial_done"),
+    # cols AD, AE, AF = SKIP (Closed Won Reason, Closed Lost Reason x2)
+    # col AG = SKIP (Real Opportunity? — manual)
+    # col AH = SKIP (Source of meeting [Refined] — manual)
     ("AI", "Qualified",                          "computed", "qualified",                         "passthrough"),
     ("AJ", "Closure Month",                      "deal",     "closedate",                         "month_year"),
     ("AK", "Opportunity loss reason",            "deal",     "closed_lost_reasons",               "passthrough"),

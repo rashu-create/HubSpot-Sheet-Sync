@@ -5,12 +5,12 @@ Run once after deploying changes that add new columns or change dropdown values:
     python scripts/setup_sheet.py
 
 What it does:
-  1. Fetches Sales Pipeline stage labels from HubSpot (col T dropdown)
-  2. Sets col U (Trial Stage) dropdown from hardcoded HubSpot values
+  1. Fetches Sales Pipeline stage labels from HubSpot (Stage dropdown, col U)
+  2. Sets the Trial Stage dropdown (col V) from hardcoded HubSpot values
   3. Sets col C (Opportunity?) dropdown with Yes/No/Maybe + chip colors
   4. Sets col D (Owner?) dropdown — reads current sheet values so multi-owner
      combos like "Chandra, Deeksha" are included as valid options
-  5. Applies green row highlight rule when col T = "Closed Won"
+  5. Applies green row highlight rule when Stage (col U) = "Closed Won"
 """
 
 import os
@@ -20,6 +20,9 @@ import httpx
 import gspread
 from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.mapping import COLUMN_MAP, col_letter_to_index  # noqa: E402
 
 load_dotenv()
 
@@ -58,7 +61,7 @@ _OWNER_COLORS: dict[str, dict] = {
     "Abhishek": {"red": 0.643, "green": 0.761, "blue": 0.957},  # #A4C2F4
 }
 
-# Trial Stage values from HubSpot (col U)
+# Trial Stage values from HubSpot (col V)
 TRIAL_STAGE_OPTIONS = [
     "To Start",
     "Trial - Integrations",
@@ -73,14 +76,21 @@ TRIAL_STAGE_OPTIONS = [
 # Green: #93C77A (same shade Google Sheets uses for light green)
 _GREEN = {"red": 0.576, "green": 0.780, "blue": 0.478, "alpha": 1.0}
 
-# Col C = index 3 (1-based) → 2 (0-based for API)
-_COL_C_0 = 2
-# Col D = index 4 (1-based) → 3 (0-based for API)
-_COL_D_0 = 3
-# Col T = index 20 (1-based) → 19 (0-based for API)
-_COL_T_0 = 19
-# Col U = index 21 (1-based) → 20 (0-based for API)
-_COL_U_0 = 20
+def _letter(header: str) -> str:
+    """Column letter of a header in COLUMN_MAP — the single source of truth for the layout."""
+    return next(entry[0] for entry in COLUMN_MAP if entry[1] == header)
+
+
+def _col0(header: str) -> int:
+    """0-based column index (what the Sheets API wants) of a COLUMN_MAP header."""
+    return col_letter_to_index(_letter(header)) - 1
+
+
+_COL_C_0 = _col0("Opportunity?")
+_COL_D_0 = _col0("Owner?")
+_COL_STAGE_0 = _col0("Stage")
+_COL_TRIAL_STAGE_0 = _col0("Trial Stage")
+_STAGE_LETTER = _letter("Stage")
 
 _DATA_START_ROW = 1   # 0-based: row 2 in Sheets (skip header row 1 = index 0)
 _DATA_END_ROW   = 600  # 0-based exclusive
@@ -202,9 +212,9 @@ def _text_contains_color_request(sheet_id: int, col_0: int, value: str, bg: dict
 
 
 def _closed_won_format_request(sheet_id: int) -> dict:
-    # Formula applies to entire row; $T is absolute column, row number adjusts per row.
+    # Formula applies to entire row; the Stage column is absolute, row number adjusts per row.
     # Row 2 = first data row (1-based), which is _DATA_START_ROW+1 in 1-based terms.
-    formula = f'=$T{_DATA_START_ROW + 1}="Closed Won"'
+    formula = f'=${_STAGE_LETTER}{_DATA_START_ROW + 1}="Closed Won"'
     return {
         "addConditionalFormatRule": {
             "rule": {
@@ -276,8 +286,8 @@ def main() -> None:
         # Dropdowns
         _dropdown_request(ws_id, _COL_C_0, OPPORTUNITY_OPTIONS),
         _dropdown_request(ws_id, _COL_D_0, OWNER_OPTIONS),  # multi-select: strict=False lets combos through
-        _dropdown_request(ws_id, _COL_T_0, stage_labels),
-        _dropdown_request(ws_id, _COL_U_0, TRIAL_STAGE_OPTIONS),
+        _dropdown_request(ws_id, _COL_STAGE_0, stage_labels),
+        _dropdown_request(ws_id, _COL_TRIAL_STAGE_0, TRIAL_STAGE_OPTIONS),
         # Owner? chip colours (TEXT_CONTAINS — multi-owner cells get primary owner's colour)
         # Added in reverse priority; Chandra is added last → ends up at lowest index → wins
         *[_text_contains_color_request(ws_id, _COL_D_0, name, color)
@@ -295,8 +305,8 @@ def main() -> None:
     print("Done.")
     print(f"  Col C (Opportunity?) dropdown: {len(OPPORTUNITY_OPTIONS)} options + 3 chip colours")
     print(f"  Col D (Owner?) dropdown: {len(OWNER_OPTIONS)} options (multi-select enabled) + 8 chip colours")
-    print(f"  Col T (Stage) dropdown: {len(stage_labels)} options")
-    print(f"  Col U (Trial Stage) dropdown: {len(TRIAL_STAGE_OPTIONS)} options")
+    print(f"  Col {_STAGE_LETTER} (Stage) dropdown: {len(stage_labels)} options")
+    print(f"  Col {_letter('Trial Stage')} (Trial Stage) dropdown: {len(TRIAL_STAGE_OPTIONS)} options")
     print("  Green highlight rule added for Closed Won rows")
 
 

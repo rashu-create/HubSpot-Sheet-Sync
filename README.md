@@ -52,16 +52,18 @@ tabs. A forecast failure is recorded as `Forecast: …` and never stops the row 
 
 ## Column map
 
-Defined in `src/mapping.py` (`COLUMN_MAP`). **SKIP** columns are manual and never written.
+Defined in `src/mapping.py` (`COLUMN_MAP`; `SOURCE_COL`). **SKIP** columns are manual and never written.
+Layout after the 2026-10 move (**branch `feat/source-col-move`, live only after the cutover** — until then the
+sheet is still the old layout and the header guard blocks writes):
 A = Domain (input, never written) · B Date of First Meeting (SKIP) · C Opportunity? · D Owner? ·
-E Priority · F ICP Segment · G ICP Size · H Funding · I Employee Count · J Size of Sales Team ·
-K Job Title of Champion · L–N L1/L2/L3 Qualified · O–Q L1/L2/L3 Comments · R Next Steps ·
-S Due Date · T Stage · U Trial Stage · V/W Trial Start/End · X Notes from Call · Y SKIP ·
-Z Conversion · AA Still active? · AB Trial done? · AC–AF SKIP · AG Source of meeting (Muni
-Sheet) · AH SKIP · AI Qualified · AJ Closure Month · AK/AL Opportunity loss reason (+ deepdive) ·
-AM/AN SKIP · AO Deal Amount · AP "Domain key" (owned by ae-kpi-tracker).
+**E Source of meeting (Muni Sheet)** · F Priority · G ICP Segment · H ICP Size · I Funding · J Employee Count ·
+K Size of Sales Team · L Job Title of Champion · M–O L1/L2/L3 Qualified · P–R L1/L2/L3 Comments · S Next Steps ·
+T Due Date · U Stage · V Trial Stage · W/X Trial Start/End · Y Notes from Call · Z SKIP (Source of meeting (First HS)) ·
+AA Conversion · AB Still active? · AC Trial done? · AD–AF SKIP (Closed Won/Lost Reason) · AG SKIP (Real Opportunity?) ·
+AH SKIP (Source of meeting [Refined]) · AI Qualified · AJ Closure Month · AK/AL Opportunity loss reason (+ deepdive) ·
+AM/AN SKIP · AO Deal Value · AP "Domain key" (owned by ae-kpi-tracker).
 
-## Source of meeting (col AG)
+## Source of meeting (col E; col AG before the move)
 
 Taken from the Meeting Booked vs Done analysis (`src/meeting_source.py`): the meeting that matches the row's
 Date of First Meeting, else the nearest earlier one, else the earliest; the old Weekly Meetings sheet is the
@@ -74,13 +76,14 @@ and the run reports `Header guard: …`. Fix the sheet (or `COLUMN_MAP`) and re-
 
 ## Who else reads this sheet — check before changing columns
 
-Moving or inserting a column breaks anything that addresses columns by letter or position.
+Moving or inserting a column breaks anything that addresses columns by letter or position. Cutover runbook for the
+Source-of-meeting move: `docs/cutover-source-col-move.md`.
 
 | Consumer | How it addresses columns | Deployed |
 |---|---|---|
-| `~/ae-kpi-tracker` | Hardcoded letters in formulas and constants (B, C, D, F, G, I, J, T, Z, AA, AO, AP) | VM, port 8010 |
+| `~/ae-kpi-tracker` | Named constants `COL_*` in `src/config.py` (+ header guard); formulas read them | VM, port 8010 |
 | `~/meeting-booked-done-analysis` `src/ingest.py` | Header names | VM timer |
-| `~/meeting-booked-done-analysis` and `~/sales-pipeline-analysis` `src/pipeline_csv.py` | Fixed CSV indices (offline export) | local |
+| `~/meeting-booked-done-analysis` and `~/sales-pipeline-analysis` `src/pipeline_csv.py` | Header names (offline export; was fixed indices until 2026-10-22) | local |
 | `~/slack-bot` `pipeline_sheet_api.py` | Column A only | VM |
 | `~/weekly-sales-tracker` | A different sheet (the manager's own) | — |
 

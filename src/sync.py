@@ -21,6 +21,7 @@ import src.forecast as forecast
 import src.hubspot as hubspot
 import src.meeting_source as meeting_source
 import src.sheets as sheets
+from src.mapping import SOURCE_COL
 
 logging.basicConfig(
     level=logging.INFO,
@@ -73,7 +74,7 @@ def run_sync(dry_run: bool = False) -> RunResult:
     source_skipped = False
 
     try:
-        # 1. Source of meeting inputs. A failure skips the AG column for this run (it is never
+        # 1. Source of meeting inputs. A failure skips the source column for this run (it is never
         #    blanked, and the legacy sheet is not used as a stand-in for the analysis).
         analysis = None
         try:
@@ -154,16 +155,16 @@ def run_sync(dry_run: bool = False) -> RunResult:
                 rows_skipped += 1
                 # The source does not depend on HubSpot, so still write it for this row.
                 if sources is not None and row_idx in sources:
-                    updates.append({"row": row_idx, "values": {"AG": sources[row_idx][0]}})
+                    updates.append({"row": row_idx, "values": {SOURCE_COL: sources[row_idx][0]}})
                 # Rate floor between rows (rate limiter handles per-call)
                 time.sleep(0.15)
                 continue
 
-            # Source of meeting: only ever written when resolved — an unresolved or skipped
+            # Source of meeting (col E): only ever written when resolved — an unresolved or skipped
             # column leaves whatever is already in the sheet.
-            row_data.pop("AG", None)
+            row_data.pop(SOURCE_COL, None)
             if sources is not None and row_idx in sources:
-                row_data["AG"] = sources[row_idx][0]
+                row_data[SOURCE_COL] = sources[row_idx][0]
 
             updates.append({"row": row_idx, "values": row_data})
             rows_synced += 1

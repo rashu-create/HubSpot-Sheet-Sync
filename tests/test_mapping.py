@@ -204,12 +204,13 @@ def test_employee_count_in_company_properties():
     assert "employee_count" in COMPANY_PROPERTIES
 
 
-def test_col_i_uses_computed_employee_count_merged():
-    """Col I must use computed source so the fallback logic in hubspot.py applies."""
+def test_col_j_uses_computed_employee_count_merged():
+    """Col J (Employee Count; moved from I when Source of meeting went to E) must use the computed source."""
     from src.mapping import COLUMN_MAP
     cols = {entry[0]: entry for entry in COLUMN_MAP}
-    assert "I" in cols, "Col I missing from COLUMN_MAP"
-    col, header, source, prop, formatter = cols["I"]
+    assert "J" in cols, "Col J missing from COLUMN_MAP"
+    col, header, source, prop, formatter = cols["J"]
+    assert header == "Employee Count"
     assert source == "computed", f"Col I source should be 'computed', got {source!r}"
     assert prop == "employee_count_merged"
     assert formatter == "number"
@@ -252,3 +253,30 @@ def test_column_aj_is_closure_month():
     col, header, source, prop, formatter = cols["AJ"]
     assert prop == "closedate"
     assert formatter == "month_year"
+
+
+def test_source_of_meeting_is_col_e_and_everything_before_ai_shifted_one_right():
+    """Layout after the 2026-10 move: E = Source of meeting, old E..AB are F..AC, AH onward unchanged."""
+    from src.mapping import COLUMN_MAP, SOURCE_COL
+    cols = {entry[0]: entry for entry in COLUMN_MAP}
+    assert SOURCE_COL == "E"
+    assert cols["E"][2] == "sdr" and cols["E"][1] == "Source of meeting (Muni Sheet)"
+    expected = {
+        "C": "Opportunity?", "D": "Owner?", "F": "Priority", "G": "ICP - Segment", "H": "ICP - Size",
+        "I": "Funding", "J": "Employee Count", "K": "Size of Sales Team", "L": "Job Title of Champion",
+        "S": "Next Steps", "T": "Due Date", "U": "Stage", "V": "Trial Stage", "W": "Trial Start Date",
+        "X": "Trial End Date", "Y": "Notes from Call", "AA": "Conversion", "AB": "Still active?",
+        "AC": "Trial done?", "AI": "Qualified", "AJ": "Closure Month", "AO": "Deal Value",
+    }
+    for letter, header in expected.items():
+        assert letter in cols, f"{letter} missing"
+        assert cols[letter][1] == header, f"{letter}: {cols[letter][1]!r} != {header!r}"
+    # manual SKIP columns are never written
+    for letter in ("B", "Z", "AD", "AE", "AF", "AG", "AH", "AM", "AN", "AP"):
+        assert letter not in cols, f"{letter} is a manual/foreign column and must not be in COLUMN_MAP"
+
+
+def test_next_steps_and_due_date_columns_after_the_move():
+    from src.mapping import COLUMN_MAP
+    cols = {entry[0]: entry for entry in COLUMN_MAP}
+    assert cols["S"][3] == "next_steps_r" and cols["T"][3] == "next_steps_s" and cols["T"][4] == "date_dmy"

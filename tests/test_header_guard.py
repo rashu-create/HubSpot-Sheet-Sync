@@ -8,8 +8,8 @@ from src import sheets
 from src.header_guard import HeaderMismatchError, check_headers, expected_headers
 from src.mapping import COLUMN_MAP
 
-# Row 1 of the live "Sales Pipeline 2026" tab, captured 2026-10-22 (A..AP).
-LIVE_HEADERS = [
+# Row 1 of the live "Sales Pipeline 2026" tab BEFORE the move (captured 2026-10-22, A..AP).
+PRE_MOVE = [
     "Domain", "Date of First Meeting", "Opportunity?", "Owner?", "Priority", "ICP - Segment",
     "ICP - Size", "Funding", "Employee Count", "Size of Sales Team", "Job Title of Champion",
     "L1 Qualified? [ICP]", "L2 Qualified? [Seniority]", "L3 Qualified? [Intent]",
@@ -22,6 +22,8 @@ LIVE_HEADERS = [
     "Opportunity loss reason - deepdive", "Trial loss reason", " Intent signals", "Deal Value",
     "Domain key",
 ]
+# The move: col AG (index 32) goes to E (index 4); old E..AF shift right by one; AH onward stays.
+LIVE_HEADERS = PRE_MOVE[:4] + [PRE_MOVE[32]] + PRE_MOVE[4:32] + PRE_MOVE[33:]
 
 ALL_COLS = [entry[0] for entry in COLUMN_MAP]
 
@@ -33,25 +35,25 @@ def test_every_mapped_column_matches_the_live_header_row():
 
 def test_expected_headers_come_from_column_map():
     exp = expected_headers()
-    assert exp["AG"] == "Source of meeting (Muni Sheet)"
+    assert exp["E"] == "Source of meeting (Muni Sheet)"
     assert exp["AO"] == "Deal Value"
+    assert "AG" not in exp          # AG is now the manual "Real Opportunity?" column
     assert "A" not in exp  # column A is input only
 
 
 def test_comparison_ignores_case_and_stray_whitespace():
     headers = list(LIVE_HEADERS)
-    headers[4] = "  PRIORITY "  # E
-    headers[5] = "icp  -   segment"  # F
-    assert check_headers(headers, ["E", "F"]) == []
+    headers[5] = "  PRIORITY "  # F
+    headers[6] = "icp  -   segment"  # G
+    assert check_headers(headers, ["F", "G"]) == []
 
 
 def test_shifted_columns_are_reported():
-    # Simulate a column moved into E: every header from E rightwards is off by one.
-    moved = LIVE_HEADERS[:4] + ["Source of meeting (Muni Sheet)"] + LIVE_HEADERS[4:32] + LIVE_HEADERS[33:]
-    problems = check_headers(moved, ALL_COLS)
-    assert problems  # not empty
+    # The OLD layout (before the move) must now be rejected: E..AB headers are off by one.
+    problems = check_headers(PRE_MOVE, ALL_COLS)
+    assert problems
     assert any(p.startswith("E:") for p in problems)
-    assert any(p.startswith("AG:") for p in problems)
+    assert any(p.startswith("U:") for p in problems)
 
 
 def test_a_row_that_is_too_short_is_reported_not_crashed():
@@ -61,9 +63,9 @@ def test_a_row_that_is_too_short_is_reported_not_crashed():
 
 def test_only_the_columns_being_written_are_checked():
     broken = list(LIVE_HEADERS)
-    broken[18] = "Totally different"  # S
+    broken[19] = "Totally different"  # T
     assert check_headers(broken, ["C", "D"]) == []
-    assert check_headers(broken, ["S"]) != []
+    assert check_headers(broken, ["T"]) != []
 
 
 # ── integration with write_pipeline_rows ─────────────────────────────────────
@@ -85,17 +87,16 @@ def _env(monkeypatch):
 
 
 def test_write_is_blocked_when_headers_do_not_match():
-    shifted = LIVE_HEADERS[:4] + ["Source of meeting (Muni Sheet)"] + LIVE_HEADERS[4:32] + LIVE_HEADERS[33:]
-    client, spreadsheet = _worksheet(shifted)
+    client, spreadsheet = _worksheet(PRE_MOVE)
     with patch.object(sheets, "_get_client", return_value=client):
         with pytest.raises(HeaderMismatchError) as exc:
-            sheets.write_pipeline_rows([{"row": 2, "values": {"E": "High", "T": "Trial"}}])
-    assert "E:" in str(exc.value)
+            sheets.write_pipeline_rows([{"row": 2, "values": {"F": "High", "U": "Trial"}}])
+    assert "F:" in str(exc.value)
     spreadsheet.values_batch_update.assert_not_called()
 
 
 def test_write_goes_ahead_when_headers_match():
     client, spreadsheet = _worksheet(LIVE_HEADERS)
     with patch.object(sheets, "_get_client", return_value=client):
-        sheets.write_pipeline_rows([{"row": 2, "values": {"E": "High", "T": "Trial"}}])
+        sheets.write_pipeline_rows([{"row": 2, "values": {"F": "High", "U": "Trial"}}])
     spreadsheet.values_batch_update.assert_called_once()

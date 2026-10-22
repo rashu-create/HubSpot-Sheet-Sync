@@ -17,9 +17,9 @@ def _make_row_data(domain: str) -> dict:
     return {
         "C": "Yes",
         "D": "Alice Smith",
-        "E": "High",
-        "T": "Qualified",
-        "AF": "",  # SDR injected by sync
+        "F": "High",
+        "U": "Qualified",
+        "E": "",  # Source of meeting, injected by sync
     }
 
 
@@ -187,10 +187,10 @@ class TestRunResultFields:
         mock_read_domains,
         mock_write_rows,
     ):
-        """A legacy-sheet source (fallback) should be injected as column AG in each update."""
+        """A legacy-sheet source (fallback) should be injected as column E in each update."""
         mock_build_sdr_map.return_value = {"example.com": "Muni"}
         mock_read_domains.return_value = [(2, "example.com")]
-        mock_get_row_data.return_value = {"C": "Yes", "AG": ""}
+        mock_get_row_data.return_value = {"C": "Yes", "E": ""}
 
         # Capture what write_pipeline_rows receives
         captured = []
@@ -200,7 +200,7 @@ class TestRunResultFields:
 
         assert captured, "Expected at least one update"
         row_update = captured[0]
-        assert row_update["values"].get("AG") == "Muni"
+        assert row_update["values"].get("E") == "Muni"
 
     @patch("src.sync.sheets.write_pipeline_rows")
     @patch("src.sync.sheets.read_pipeline_domains")
@@ -213,10 +213,10 @@ class TestRunResultFields:
         mock_read_domains,
         mock_write_rows,
     ):
-        """AG must be left alone (never blanked) when no source is found for the domain."""
+        """E must be left alone (never blanked) when no source is found for the domain."""
         mock_build_sdr_map.return_value = {}
         mock_read_domains.return_value = [(2, "example.com")]
-        mock_get_row_data.return_value = {"C": "Yes", "AG": ""}
+        mock_get_row_data.return_value = {"C": "Yes", "E": ""}
 
         captured = []
         mock_write_rows.side_effect = lambda updates: captured.extend(updates)
@@ -224,7 +224,7 @@ class TestRunResultFields:
         run_sync(dry_run=False)
 
         assert captured
-        assert "AG" not in captured[0]["values"]
+        assert "E" not in captured[0]["values"]
 
 
 # ── Employee count merge + ICP size helpers ───────────────────────────────────

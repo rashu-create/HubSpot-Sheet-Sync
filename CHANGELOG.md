@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-22 — PREP (NOT DEPLOYED): "Source of meeting" moves from AG to col E (branch `feat/source-col-move`)
+
+### Changed — `src/mapping.py`, `src/sync.py`, `scripts/setup_sheet.py`, `scripts/source_diff.py`
+- `COLUMN_MAP` re-lettered: E = Source of meeting (Muni Sheet) (`SOURCE_COL`), old E..AB are now F..AC (Segment G, Size H, Employee Count J, Sales team K, Next Steps S, Due Date T, Stage U, Conversion AA, Still active? AB, Trial done? AC); AD..AH are manual SKIP columns; AI onward unchanged.
+- `sync.py` writes the source to `SOURCE_COL`; `scripts/setup_sheet.py` derives its dropdown columns and the "Closed Won" row highlight (`=$U2="Closed Won"`) from `COLUMN_MAP` instead of hardcoded `T`/`U`; `source_diff.py` reads `SOURCE_COL`.
+- The header guard compares row 1 with the NEW layout, so deploying this code before the column is moved only produces "Header guard: …" errors and writes nothing.
+
+### Added — `src/column_move.py`, `scripts/move_source_column.py`
+- One-shot move script: `--check` (read-only, reports PRE/POST layout), `--apply --yes` (hidden backup tab -> ONE `moveDimension` AG->E -> cell-by-cell verification against the backup, prints the conditional-format formulas), `--rollback --yes` (E back to AG, compared with the backup). Pure helpers + tests in `tests/test_column_move.py`.
+- Runbook: `docs/cutover-source-col-move.md`.
+
+### Tests: 243 (was 228).
+
+---
 ## 2026-10-22 — Twice-daily schedule, header guard, Source of meeting from the analysis 
 
 ### Changed — `src/scheduler.py`

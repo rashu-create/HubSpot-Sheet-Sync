@@ -30,7 +30,7 @@ def _run(rows, *, analysis, first_meetings, legacy=None, row_data=None, dry_run=
             side_effect=dates_error, return_value=first_meetings))
         st.enter_context(patch(
             "src.sync.hubspot.get_row_data",
-            side_effect=lambda d: ({"C": "Yes", "AG": ""} if d not in row_data else row_data[d])
+            side_effect=lambda d: ({"C": "Yes", "E": ""} if d not in row_data else row_data[d])
             if row_data.get(d, True) is not None else None))
         st.enter_context(patch(
             "src.sync.sheets.write_pipeline_rows", side_effect=lambda u: written.extend(u)))
@@ -48,21 +48,21 @@ def test_source_comes_from_the_meeting_matching_the_row():
         Meeting("a.com", date(2026, 1, 1), "Ads", 5, ""),     # 1 Jan + 5 days == 6 Jan -> exact
     )
     result, written = _run([(2, "a.com")], analysis=analysis, first_meetings={2: JAN6})
-    assert _by_row(written)[2]["AG"] == "Ads"
+    assert _by_row(written)[2]["E"] == "Ads"
     assert (result.source_filled, result.source_analysis, result.source_legacy,
             result.source_unresolved) == (1, 1, 0, 0)
 
 
 def test_unresolved_row_is_not_blanked():
     result, written = _run([(2, "a.com")], analysis=_analysis(), first_meetings={2: JAN6})
-    assert "AG" not in _by_row(written)[2]            # existing sheet value is left alone
+    assert "E" not in _by_row(written)[2]            # existing sheet value is left alone
     assert result.source_unresolved == 1 and result.source_filled == 0
 
 
 def test_legacy_sheet_is_the_fallback():
     result, written = _run([(2, "b.com")], analysis=_analysis(), first_meetings={2: JAN6},
                            legacy={"b.com": "Muni"})
-    assert _by_row(written)[2]["AG"] == "Muni"
+    assert _by_row(written)[2]["E"] == "Muni"
     assert result.source_legacy == 1
 
 
@@ -70,7 +70,7 @@ def test_source_is_written_even_when_hubspot_has_no_match():
     analysis = _analysis(Meeting("nohs.com", date(2026, 1, 6), "Referral", 0, ""))
     result, written = _run([(2, "nohs.com")], analysis=analysis, first_meetings={2: JAN6},
                            row_data={"nohs.com": None})
-    assert _by_row(written) == {2: {"AG": "Referral"}}     # only AG, nothing else touched
+    assert _by_row(written) == {2: {"E": "Referral"}}     # only AG, nothing else touched
     assert result.rows_skipped == 1 and result.rows_synced == 0   # still counted as a HubSpot miss
     assert result.source_filled == 1
 
@@ -78,7 +78,7 @@ def test_source_is_written_even_when_hubspot_has_no_match():
 def test_a_failed_analysis_read_skips_the_column_and_reports_it():
     result, written = _run([(2, "a.com")], analysis=None, first_meetings={2: JAN6},
                            legacy={"a.com": "Muni"}, analysis_error=RuntimeError("quota"))
-    assert "AG" not in _by_row(written)[2]            # legacy is NOT used as a stand-in
+    assert "E" not in _by_row(written)[2]            # legacy is NOT used as a stand-in
     assert any(e.startswith("Source of meeting") and "quota" in e for e in result.errors)
     assert result.source_skipped is True
     assert result.rows_synced == 1                    # the rest of the sync is unaffected
@@ -88,7 +88,7 @@ def test_a_failed_date_read_skips_the_column_and_reports_it():
     analysis = _analysis(Meeting("a.com", JAN6, "Ads", 0, ""))
     result, written = _run([(2, "a.com")], analysis=analysis, first_meetings=None,
                            dates_error=RuntimeError("boom"))
-    assert "AG" not in _by_row(written)[2]
+    assert "E" not in _by_row(written)[2]
     assert any(e.startswith("Source of meeting") for e in result.errors)
     assert result.source_skipped is True
 
