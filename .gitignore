@@ -11,3 +11,7 @@ venv/
 .coverage
 htmlcov/
 data/run_history.json
+
+# tooling caches / local agent scratch
+.ruff_cache/
+.superpowers/

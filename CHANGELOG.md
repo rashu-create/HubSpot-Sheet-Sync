@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-22 — Project cleanup
+
+### Changed
+- Added `README.md` (what it does, run/deploy, column map, **table of downstream consumers of the sheet** to check before any column change).
+- Moved finished one-shot scripts to `scripts/archive/` (with a README warning not to re-run them): `insert_qualified_column`, `verify_qualified_column`, `clear_columns`, `diagnose_owner_colD`, `diagnose_graphify`, `discover_properties`.
+- `.gitignore`: added `.ruff_cache/` and `.superpowers/`.
+- Removed the stray pricing-alerts plan from `docs/superpowers/plans/` (moved to `~/pricing-alerts`).
+- Deleted the fully merged branches `deploy/safe-deploy-script` and `feat/deal-amount-column` (local and `origin`).
+- No runtime code changed.
+
+---
 ## 2026-10-12 — "Sales Forecast - AEs" tab; Overview tab renamed
 
 ### Added — `src/forecast.py` (`build_ae_grid`), `src/sheets.py`, `src/slack.py`
