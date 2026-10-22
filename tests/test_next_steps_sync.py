@@ -266,3 +266,64 @@ def test_duplicate_domain_rows_are_skipped(make_env):
     edited = {2: ("Send pricing", OLD_SERIAL), 3: ("Send pricing", OLD_SERIAL)}
     env.run(rows=((2, "acme.com"), (3, "ACME.com")), reads=[edited, edited, edited])
     assert env.pushed == []
+
+
+# ── automatic go-live date ───────────────────────────────────────────────────
+
+from datetime import datetime, timedelta, timezone
+
+from src.next_steps_sync import NextStepsSync
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def _at(y, m, d, h=10):
+    return datetime(y, m, d, h, 0, tzinfo=IST)
+
+
+def _env(monkeypatch, mode, live_from=None):
+    monkeypatch.setenv("NEXT_STEPS_WRITEBACK", mode)
+    if live_from is None:
+        monkeypatch.delenv("NEXT_STEPS_LIVE_FROM", raising=False)
+    else:
+        monkeypatch.setenv("NEXT_STEPS_LIVE_FROM", live_from)
+
+
+def test_dry_run_stays_dry_before_the_live_date(monkeypatch):
+    _env(monkeypatch, "dry_run", "2026-10-26")
+    ns = NextStepsSync.from_env(now=_at(2026, 10, 25, 22))          # Sunday 22:00 IST
+    assert ns.mode == "dry_run" and ns.errors == []
+
+
+def test_dry_run_turns_on_from_the_live_date_in_ist(monkeypatch):
+    _env(monkeypatch, "dry_run", "2026-10-26")
+    assert NextStepsSync.from_env(now=_at(2026, 10, 26, 10)).mode == "on"       # Monday 10:00 IST
+    assert NextStepsSync.from_env(now=_at(2026, 11, 2, 22)).mode == "on"        # and every run after
+
+
+def test_the_live_date_is_judged_in_ist_not_utc(monkeypatch):
+    _env(monkeypatch, "dry_run", "2026-10-26")
+    # Monday 10:00 IST is still Monday 04:30 UTC, but Sunday 22:00 IST is Sunday 16:30 UTC: both fine; the edge case is
+    # Monday 01:00 IST = Sunday 19:30 UTC, which must already count as Monday.
+    assert NextStepsSync.from_env(now=datetime(2026, 10, 25, 19, 30, tzinfo=timezone.utc)).mode == "on"
+
+
+def test_off_is_the_kill_switch_even_after_the_live_date(monkeypatch):
+    _env(monkeypatch, "off", "2026-10-26")
+    assert NextStepsSync.from_env(now=_at(2026, 10, 27)).mode == "off"
+
+
+def test_explicit_on_is_unaffected_by_the_live_date(monkeypatch):
+    _env(monkeypatch, "on", "2099-01-01")
+    assert NextStepsSync.from_env(now=_at(2026, 10, 24)).mode == "on"
+
+
+def test_a_bad_live_date_is_ignored_and_reported(monkeypatch):
+    _env(monkeypatch, "dry_run", "monday")
+    ns = NextStepsSync.from_env(now=_at(2026, 10, 27))
+    assert ns.mode == "dry_run" and any("NEXT_STEPS_LIVE_FROM" in e for e in ns.errors)
+
+
+def test_no_live_date_means_no_automatic_change(monkeypatch):
+    _env(monkeypatch, "dry_run")
+    assert NextStepsSync.from_env(now=_at(2030, 1, 1)).mode == "dry_run"

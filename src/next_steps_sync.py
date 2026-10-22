@@ -1,6 +1,7 @@
 """Next Steps / Due Date write-back, per sync run (see src/next_steps.py for the rules).
 
 NEXT_STEPS_WRITEBACK = off | dry_run | on   (default off)
+NEXT_STEPS_LIVE_FROM = YYYY-MM-DD (IST), optional: a `dry_run` setup becomes `on` from that date by itself.
   off      nothing changes.
   dry_run  decisions are made and logged (WOULD_UPDATE) but nothing is pushed to HubSpot; the AE's cell is left as
            typed, so a dry run never destroys an edit.
@@ -14,7 +15,7 @@ import logging
 import os
 import re
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from src import hubspot, next_steps_log, next_steps_state, sheets
@@ -28,6 +29,7 @@ from src.next_steps import (
 logger = logging.getLogger(__name__)
 
 MODES = ("off", "dry_run", "on")
+IST = timezone(timedelta(hours=5, minutes=30))
 _RISKY_TEXT = re.compile(r"^[=+\-@]|^[\d\s.,/:\-]+$")     # Sheets would turn these into formulas / numbers / dates
 
 
@@ -57,12 +59,24 @@ class NextStepsSync:
         self._run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
 
     @classmethod
-    def from_env(cls, sync_dry_run: bool = False) -> "NextStepsSync":
-        return cls(
-            mode=os.getenv("NEXT_STEPS_WRITEBACK", "off").strip().lower() or "off",
-            sync_dry_run=sync_dry_run,
-            state_path=os.getenv("NEXT_STEPS_STATE_FILE", "").strip() or None,
-        )
+    def from_env(cls, sync_dry_run: bool = False, now: datetime | None = None) -> "NextStepsSync":
+        """Mode from NEXT_STEPS_WRITEBACK; `dry_run` + NEXT_STEPS_LIVE_FROM=YYYY-MM-DD (an IST date) goes live by itself.
+
+        `off` is the kill switch and always wins; an explicit `on` is never delayed.
+        """
+        mode = os.getenv("NEXT_STEPS_WRITEBACK", "off").strip().lower() or "off"
+        notes: list[str] = []
+        live_from = os.getenv("NEXT_STEPS_LIVE_FROM", "").strip()
+        if live_from and mode == "dry_run":
+            try:
+                if (now or datetime.now(IST)).astimezone(IST).date() >= date.fromisoformat(live_from):
+                    mode = "on"
+            except ValueError:
+                notes.append(f"Next steps: ignoring NEXT_STEPS_LIVE_FROM {live_from!r} (expected YYYY-MM-DD)")
+        ns = cls(mode=mode, sync_dry_run=sync_dry_run,
+                 state_path=os.getenv("NEXT_STEPS_STATE_FILE", "").strip() or None)
+        ns.errors.extend(notes)
+        return ns
 
     # ── before the row loop ──────────────────────────────────────────────────
 

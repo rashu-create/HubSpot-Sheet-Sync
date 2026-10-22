@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-22 (late) — Release 2 DONE: "Source of meeting" is now column E (live 21:40 IST); Next Steps goes live on 26 Oct by itself
+
+### Done
+- **Column move executed 21:40 IST** with `scripts/move_source_column.py --apply`: hidden backup tab `Sales Pipeline 2026 – backup 2026-10-22`, one `moveDimension` AG -> E, all 456 rows verified against the backup; the "Closed Won" highlight formula moved to `$U2` on its own. All 46 other tabs were identical before/after (`scripts/snapshot_values.py`). hubspot-sheet-sync and ae-kpi-tracker deployed right after (header guards made the order safe); first sync on the new layout: 446/455 rows, 0 errors, 431 sources, all columns hold the right data, E matches the analysis for all 431 resolved rows. ae-kpi verifiers on the new letters: analysis tabs 1,746 cells ALL OK, Weekly tracker 5,516 checks 0 mismatches.
+- Sheet guardrails applied: strict "valid date" rule on Due Date (T2:T600) + notes on the Next Steps / Due Date headers.
+- **Lesson:** `POST /api/setup` on ae-kpi-tracker was NOT needed after the move (Sheets rewrites cross-tab references on a column move) and it **reset the typed filter inputs** (19 cells: the From/Till date windows on every analysis tab and the Dashboard `Closed Source` filter). Restored from the pre-move snapshot the same night; counts back to baseline. Never run `/api/setup` for a pure column move.
+
+### Added — automatic go-live for the Next Steps write-back
+- `NEXT_STEPS_LIVE_FROM=YYYY-MM-DD` (IST date): with `NEXT_STEPS_WRITEBACK=dry_run` the sync switches itself to `on` from that date, so no terminal/restart is needed. `off` is the kill switch and always wins; an explicit `on` is never delayed; a malformed date is ignored and reported. Tests: 355.
+
+---
 ## 2026-10-22 — Release 3: Next Steps / Due Date two-way sync (branch `feat/next-steps-writeback`; ships OFF/dry-run)
 
 ### Added
