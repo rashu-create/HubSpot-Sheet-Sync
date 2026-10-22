@@ -2,7 +2,8 @@
 
 Responsibilities:
   - read_pipeline_domains() — read col A of the Sales Pipeline tab
-  - build_sdr_map()         — scan all tabs of the source sheet for SDR mapping
+  - read_pipeline_first_meetings() — col B (Date of First Meeting) per row
+  - build_sdr_map()         — legacy fallback: scan all tabs of the old Weekly Meetings sheet
   - write_pipeline_rows()   — batch-write formatted values to specific row/col pairs
 
 Auth: service account credentials from GOOGLE_CREDENTIALS_FILE.
@@ -11,12 +12,15 @@ Env vars: GOOGLE_CREDENTIALS_FILE, PIPELINE_SHEET_ID, PIPELINE_TAB_NAME, SOURCE_
 
 import logging
 import os
+from datetime import date  # noqa: F401  (used in annotations)
 
 import gspread
 from gspread.utils import rowcol_to_a1
 from google.oauth2.service_account import Credentials
 
-from src.mapping import normalize_domain, col_letter_to_index
+from src.header_guard import HeaderMismatchError, check_headers
+from src.mapping import col_letter_to_index
+from src.meeting_source import UNKNOWN, norm_domain, src_map, to_date
 
 logger = logging.getLogger(__name__)
 
@@ -72,15 +76,40 @@ def read_pipeline_domains() -> list[tuple[int, str]]:
     return domains
 
 
-def build_sdr_map() -> dict[str, str]:
-    """Scan all tabs of SOURCE_SHEET_ID and build {normalized_domain: sdr_value}.
+def read_pipeline_first_meetings() -> dict[int, "date | None"]:
+    """{sheet row number: Date of First Meeting (col B) or None} for rows 2..end.
 
-    Each tab is scanned for a domain/company column and an "SDR" column.
-    - Header row detection: first row with more than one non-blank cell.
-    - Domain column: column whose header contains "domain" or "company" (case-insensitive).
-    - SDR column: column whose header is exactly "SDR" (case-insensitive).
-    - On duplicate domain across tabs: prefer the LAST tab (newest) in tab order.
-    - Tabs without both domain and SDR columns are skipped with a log.warning.
+    Read unformatted so dates arrive as serial numbers whatever the cell format is.
+    """
+    sheet_id = os.getenv("PIPELINE_SHEET_ID", "").strip()
+    tab_name = os.getenv("PIPELINE_TAB_NAME", "Sales Pipeline 2026").strip()
+    if not sheet_id:
+        raise RuntimeError("PIPELINE_SHEET_ID is not set")
+
+    worksheet = _get_client().open_by_key(sheet_id).worksheet(tab_name)
+    values = worksheet.get("B2:B", value_render_option="UNFORMATTED_VALUE")
+    return {idx + 2: to_date(row[0] if row else None) for idx, row in enumerate(values)}
+
+
+def _pick_column(headers: list[str], *candidates) -> int | None:
+    """Index of the first header satisfying the first matching candidate predicate."""
+    for matches in candidates:
+        for i, h in enumerate(headers):
+            if matches(h.strip().lower()):
+                return i
+    return None
+
+
+def build_sdr_map(alias_map: dict[str, str] | None = None) -> dict[str, str]:
+    """Legacy fallback: scan all tabs of SOURCE_SHEET_ID -> {canonical_domain: source}.
+
+    Only used for pipeline rows the Meeting Booked vs Done analysis has no meeting for.
+    - Header row: first row with more than one non-blank cell.
+    - Domain column: header "domain", else containing "domain", else "company", else containing it.
+    - Source column: header "Source of Meeting" or "SDR" (tabs since 25 May 2026 use the former).
+    - Values go through the same vocabulary as the analysis (src_map); "?"/blank are dropped.
+    - A blank value never overwrites an earlier one; otherwise the LAST (newest) tab wins.
+    - Keys are canonical domains (aliases applied).
     """
     sheet_id = os.getenv("SOURCE_SHEET_ID", "").strip()
     if not sheet_id:
@@ -102,12 +131,10 @@ def build_sdr_map() -> dict[str, str]:
         if not all_values:
             continue
 
-        # Find header row: first row with >1 non-blank cell
         header_row_idx = None
         headers: list[str] = []
         for i, row in enumerate(all_values):
-            non_blank = [c for c in row if c.strip()]
-            if len(non_blank) > 1:
+            if len([c for c in row if c.strip()]) > 1:
                 header_row_idx = i
                 headers = [h.strip() for h in row]
                 break
@@ -116,45 +143,37 @@ def build_sdr_map() -> dict[str, str]:
             logger.warning("Tab %r: no header row found — skipping", tab_name)
             continue
 
-        # Find domain column (contains "domain" or "company")
-        domain_col_idx: int | None = None
-        sdr_col_idx: int | None = None
-
-        for i, h in enumerate(headers):
-            h_lower = h.lower()
-            if domain_col_idx is None and ("domain" in h_lower or "company" in h_lower):
-                domain_col_idx = i
-            if sdr_col_idx is None and h_lower == "sdr":
-                sdr_col_idx = i
+        domain_col_idx = _pick_column(
+            headers,
+            lambda h: h == "domain",
+            lambda h: "domain" in h,
+            lambda h: h == "company",
+            lambda h: "company" in h,
+        )
+        sdr_col_idx = _pick_column(headers, lambda h: h == "source of meeting", lambda h: h == "sdr")
 
         if domain_col_idx is None:
             logger.warning("Tab %r: no domain/company column found — skipping", tab_name)
             continue
         if sdr_col_idx is None:
-            logger.warning("Tab %r: no SDR column found — skipping", tab_name)
+            logger.warning("Tab %r: no Source of Meeting / SDR column found — skipping", tab_name)
             continue
 
-        data_rows = all_values[header_row_idx + 1:]
         added = 0
-        for row in data_rows:
-            # Extend row if shorter than expected
+        for row in all_values[header_row_idx + 1:]:
             while len(row) <= max(domain_col_idx, sdr_col_idx):
                 row.append("")
 
-            raw_domain = row[domain_col_idx].strip()
-            sdr_value = row[sdr_col_idx].strip()
-
-            if not raw_domain:
+            norm = norm_domain(row[domain_col_idx], alias_map)
+            source = src_map(row[sdr_col_idx])
+            if not norm or source == UNKNOWN:
                 continue
-
-            norm = normalize_domain(raw_domain)
-            # Later tabs override earlier ones (prefer newest)
-            sdr_map[norm] = sdr_value
+            sdr_map[norm] = source
             added += 1
 
-        logger.info("Tab %r: added/updated %d SDR mappings", tab_name, added)
+        logger.info("Tab %r: added/updated %d source mappings", tab_name, added)
 
-    logger.info("SDR map built: %d unique normalised domains", len(sdr_map))
+    logger.info("Legacy source map built: %d unique domains", len(sdr_map))
     return sdr_map
 
 
@@ -277,6 +296,7 @@ def write_pipeline_rows(updates: list[dict]) -> None:
     - NEVER writes column A.
     - Chunked to max 200 rows per batch call.
     - Builds a single batch_update per chunk.
+    - Refuses to write (HeaderMismatchError) if row 1 does not match COLUMN_MAP.
     """
     if not updates:
         logger.info("write_pipeline_rows: no updates to write")
@@ -291,6 +311,14 @@ def write_pipeline_rows(updates: list[dict]) -> None:
     client = _get_client()
     spreadsheet = client.open_by_key(sheet_id)
     worksheet = spreadsheet.worksheet(tab_name)
+
+    # Header guard: column letters are only safe while the layout is what COLUMN_MAP expects.
+    written_cols = {c for u in updates for c in u["values"]}
+    problems = check_headers(worksheet.row_values(1), sorted(written_cols))
+    if problems:
+        raise HeaderMismatchError(
+            "Header guard: pipeline tab layout changed, nothing written — " + "; ".join(problems)
+        )
 
     chunk_size = 200
     total_cells_written = 0

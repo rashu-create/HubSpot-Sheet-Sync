@@ -36,6 +36,15 @@ def notify_success(result: RunResult) -> None:
         f"{result.rows_skipped} skipped (no HubSpot match)"
     ]
 
+    if result.source_skipped:
+        lines.append("🧭 Source of meeting: skipped this run (a source sheet could not be read — see errors)")
+    elif result.rows_total:
+        lines.append(
+            f"🧭 Source of meeting: {result.source_filled} filled "
+            f"({result.source_analysis} analysis, {result.source_legacy} legacy), "
+            f"{result.source_unresolved} unresolved"
+        )
+
     if result.forecast_deals:
         lines.append(
             f"📈 Sales Forecast tabs refreshed (Overview + AEs): {result.forecast_deals} deals, "

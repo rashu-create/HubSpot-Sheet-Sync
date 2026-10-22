@@ -187,8 +187,8 @@ class TestRunResultFields:
         mock_read_domains,
         mock_write_rows,
     ):
-        """SDR value from sdr_map should be injected as column AG in each update."""
-        mock_build_sdr_map.return_value = {"example.com": "Sarah SDR"}
+        """A legacy-sheet source (fallback) should be injected as column AG in each update."""
+        mock_build_sdr_map.return_value = {"example.com": "Muni"}
         mock_read_domains.return_value = [(2, "example.com")]
         mock_get_row_data.return_value = {"C": "Yes", "AG": ""}
 
@@ -200,20 +200,20 @@ class TestRunResultFields:
 
         assert captured, "Expected at least one update"
         row_update = captured[0]
-        assert row_update["values"].get("AG") == "Sarah SDR"
+        assert row_update["values"].get("AG") == "Muni"
 
     @patch("src.sync.sheets.write_pipeline_rows")
     @patch("src.sync.sheets.read_pipeline_domains")
     @patch("src.sync.sheets.build_sdr_map")
     @patch("src.sync.hubspot.get_row_data")
-    def test_sdr_injected_empty_when_no_match(
+    def test_source_not_written_when_no_source_found(
         self,
         mock_get_row_data,
         mock_build_sdr_map,
         mock_read_domains,
         mock_write_rows,
     ):
-        """SDR column AG should be empty string when domain not in sdr_map."""
+        """AG must be left alone (never blanked) when no source is found for the domain."""
         mock_build_sdr_map.return_value = {}
         mock_read_domains.return_value = [(2, "example.com")]
         mock_get_row_data.return_value = {"C": "Yes", "AG": ""}
@@ -224,7 +224,7 @@ class TestRunResultFields:
         run_sync(dry_run=False)
 
         assert captured
-        assert captured[0]["values"].get("AG") == ""
+        assert "AG" not in captured[0]["values"]
 
 
 # ── Employee count merge + ICP size helpers ───────────────────────────────────

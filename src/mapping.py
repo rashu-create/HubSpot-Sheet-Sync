@@ -88,7 +88,7 @@ COLUMN_MAP = [
     ("AB", "Trial done?",                        "deal",     "trial_done",                        "trial_done"),
     # cols AC, AD, AE = SKIP
     # col AF = SKIP (Real Opportunity? — manual)
-    ("AG", "Source of meeting",                  "sdr",      "sdr_lookup",                        "passthrough"),
+    ("AG", "Source of meeting (Muni Sheet)",       "sdr",      "sdr_lookup",                        "passthrough"),
     # col AH = SKIP (manual)
     ("AI", "Qualified",                          "computed", "qualified",                         "passthrough"),
     ("AJ", "Closure Month",                      "deal",     "closedate",                         "month_year"),
@@ -96,7 +96,7 @@ COLUMN_MAP = [
     ("AL", "Opportunity loss reason - deepdive", "deal",     "closed_lost_details",               "passthrough"),
     # col AM = SKIP (Trial loss reason — manual)
     # col AN = SKIP (Intent signals — manual)
-    ("AO", "Deal Amount",                        "deal",     "amount",                            "number"),
+    ("AO", "Deal Value",                         "deal",     "amount",                            "number"),
 ]
 
 # ── Column letter ↔ index helpers ─────────────────────────────────────────────

@@ -19,8 +19,8 @@ load_dotenv()
 
 import src.forecast as forecast
 import src.hubspot as hubspot
+import src.meeting_source as meeting_source
 import src.sheets as sheets
-from src.mapping import normalize_domain
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,13 +41,18 @@ class RunResult:
     misses: list[str] = field(default_factory=list)  # domains with no HubSpot company
     forecast_deals: int = 0          # deals shown on the Sales Forecast tab (all months)
     forecast_weighted: float = 0.0   # their weighted amount
+    source_filled: int = 0           # rows that got a Source of meeting this run
+    source_analysis: int = 0         #   ...of which from the Meeting Booked vs Done analysis
+    source_legacy: int = 0           #   ...of which from the old Weekly Meetings sheet
+    source_unresolved: int = 0       # rows with no source anywhere (existing value left alone)
+    source_skipped: bool = False     # column skipped this run because a source sheet couldn't be read
 
 
 def run_sync(dry_run: bool = False) -> RunResult:
     """Pull pipeline domains, enrich with HubSpot, and write back to the sheet.
 
     Steps:
-      1. Build SDR map from source sheet
+      1. Load Source of meeting data (analysis Data tab + legacy sheet)
       2. Read pipeline domains from pipeline sheet
       3. For each row: call HubSpot, inject SDR value, collect update
       4. Write all updates to sheet (unless dry_run)
@@ -64,16 +69,27 @@ def run_sync(dry_run: bool = False) -> RunResult:
     misses: list[str] = []
     updates: list[dict] = []
     forecast_result = forecast.ForecastResult()
+    source_filled = source_analysis = source_legacy = source_unresolved = 0
+    source_skipped = False
 
     try:
-        # 1. Build SDR map
-        logger.info("Building SDR map from source sheet...")
+        # 1. Source of meeting inputs. A failure skips the AG column for this run (it is never
+        #    blanked, and the legacy sheet is not used as a stand-in for the analysis).
+        analysis = None
         try:
-            sdr_map = sheets.build_sdr_map()
+            analysis = meeting_source.load_analysis()
+            for problem in analysis.alias_problems:
+                errors.append(f"Source of meeting: alias problem — {problem}")
         except Exception as exc:
-            logger.error("Failed to build SDR map: %s", exc, exc_info=True)
-            sdr_map = {}
-            errors.append(f"SDR map build failed: {exc}")
+            logger.error("Failed to load the analysis Data tab: %s", exc, exc_info=True)
+            errors.append(f"Source of meeting: analysis read failed — {exc}")
+
+        legacy: dict[str, str] = {}
+        try:
+            legacy = sheets.build_sdr_map(analysis.alias_map if analysis else None)
+        except Exception as exc:
+            logger.error("Failed to build the legacy source map: %s", exc, exc_info=True)
+            errors.append(f"Legacy source map build failed: {exc}")
 
         # 2. Read pipeline domains
         logger.info("Reading pipeline domains...")
@@ -95,6 +111,27 @@ def run_sync(dry_run: bool = False) -> RunResult:
         rows_total = len(domain_rows)
         logger.info("Pipeline has %d rows to process", rows_total)
 
+        # 2b. Pick the source for every row (needs col B, the Date of First Meeting)
+        sources: dict[int, tuple[str, str]] | None = None
+        if analysis is not None:
+            try:
+                first_meetings = sheets.read_pipeline_first_meetings()
+                sources = meeting_source.resolve_sources(
+                    [(row, domain, first_meetings.get(row)) for row, domain in domain_rows],
+                    analysis,
+                    legacy,
+                )
+            except Exception as exc:
+                logger.error("Failed to resolve Source of meeting: %s", exc, exc_info=True)
+                errors.append(f"Source of meeting: could not resolve — {exc}")
+        if sources is None:
+            source_skipped = True
+        else:
+            source_filled = len(sources)
+            source_analysis = sum(1 for _, rule in sources.values() if rule.startswith("analysis"))
+            source_legacy = source_filled - source_analysis
+            source_unresolved = rows_total - source_filled
+
         # 3. Pre-build deal map (deals → companies → domains) for reliable lookup
         try:
             hubspot.prebuild_deal_map()
@@ -115,13 +152,18 @@ def run_sync(dry_run: bool = False) -> RunResult:
                 logger.info("No HubSpot match for domain %r (row %d)", domain, row_idx)
                 misses.append(domain)
                 rows_skipped += 1
+                # The source does not depend on HubSpot, so still write it for this row.
+                if sources is not None and row_idx in sources:
+                    updates.append({"row": row_idx, "values": {"AG": sources[row_idx][0]}})
                 # Rate floor between rows (rate limiter handles per-call)
                 time.sleep(0.15)
                 continue
 
-            # Inject SDR value from sdr_map
-            norm = normalize_domain(domain)
-            row_data["AG"] = sdr_map.get(norm, "")
+            # Source of meeting: only ever written when resolved — an unresolved or skipped
+            # column leaves whatever is already in the sheet.
+            row_data.pop("AG", None)
+            if sources is not None and row_idx in sources:
+                row_data["AG"] = sources[row_idx][0]
 
             updates.append({"row": row_idx, "values": row_data})
             rows_synced += 1
@@ -172,6 +214,11 @@ def run_sync(dry_run: bool = False) -> RunResult:
         misses=misses,
         forecast_deals=forecast_result.deals,
         forecast_weighted=forecast_result.weighted,
+        source_filled=source_filled,
+        source_analysis=source_analysis,
+        source_legacy=source_legacy,
+        source_unresolved=source_unresolved,
+        source_skipped=source_skipped,
     )
 
     logger.info(

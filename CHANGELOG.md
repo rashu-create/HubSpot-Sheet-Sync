@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-10-22 — Twice-daily schedule, header guard, Source of meeting from the analysis (code ready, NOT yet deployed)
+
+### Changed — `src/scheduler.py`
+- The sync now runs **twice a day at 10:00 and 22:00 IST (04:30 and 16:30 UTC)** as one job, `sync_twice_daily` (was `sync_daily`, 08:00 UTC). `max_instances=1`, `misfire_grace_time=300`.
+
+### Added — `src/header_guard.py`, `src/sheets.py`
+- **Header guard:** before writing, `write_pipeline_rows` reads row 1 and compares the header of every column it is about to write with `COLUMN_MAP` (trimmed, case-insensitive). On any mismatch it writes **nothing** and raises `HeaderMismatchError` ("Header guard: …"), which shows up in the run's errors. Protects against inserted/moved/renamed columns.
+- `COLUMN_MAP` header names corrected to the live ones: AG "Source of meeting (Muni Sheet)", AO "Deal Value".
+
+### Changed — Source of meeting (col AG): `src/meeting_source.py`, `src/sync.py`, `src/sheets.py`
+- **Why it was blank:** `build_sdr_map()` only read columns headed exactly `SDR`, but every tab since 25 May 2026 uses `Source of Meeting`, so all newer meetings were skipped. Later tabs also overwrote earlier values with blanks, there were no domain aliases, and a failed build blanked the whole column.
+- **Now:** the source comes from the Meeting Booked vs Done analysis sheet (`ANALYSIS_SHEET_ID`, tab `Data`, read by header name; aliases from its `Domain Aliases` tab, validated the same way as the analysis does). For each pipeline row the meeting is chosen by: `analysis_exact` (Meeting Date + Days Late = the row's Date of First Meeting) → `analysis_before` (latest meeting on or before it, 1-day slack) → `analysis_earliest`. Rebooked child rows and `Unknown` sources are ignored. Rows with no analysis meeting fall back to the old Weekly Meetings sheet (`legacy`), now fixed (reads `Source of Meeting` or `SDR`, prefers a `Domain` header, blank never overwrites, same vocabulary).
+- **Never blanks:** AG is written only when a source was found; unresolved rows keep what is in the sheet. If the analysis sheet or the first-meeting dates can't be read, the column is skipped for that run and an error is recorded (the legacy sheet is not used as a stand-in).
+- AG is also written for rows with no HubSpot match (the source doesn't depend on HubSpot).
+- Slack success line: "Source of meeting: N filled (x analysis, y legacy), z unresolved"; run history gained `source_*` fields.
+- `src_map`, `norm_domain` and the alias validator are copies from meeting-booked-done-analysis @ 637c588 (header comment in `src/meeting_source.py`) — keep in sync.
+- `scripts/source_diff.py` (read-only) writes `output/source_diff_*.csv`: every row's current value, new value, rule and change type. First run 2026-10-22: 455 rows → 411 exact, 8 earliest, 12 legacy, 24 unresolved; 202 blank cells would be filled, 38 values would change, 191 unchanged.
+- New env var **`ANALYSIS_SHEET_ID`** (add to the VM `.env` before deploying).
+
+### Tests
+- 224 tests (was 134): schedule, header guard, `meeting_source` rules, sheet readers, sync integration, Slack/history. `real_sources` marker added; conftest stubs the new Sheets reads.
+
+---
 ## 2026-10-22 — Project cleanup
 
 ### Changed

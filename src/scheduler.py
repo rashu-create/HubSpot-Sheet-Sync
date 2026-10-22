@@ -1,6 +1,6 @@
 """APScheduler configuration for HubSpot→Sheet sync.
 
-One cron job: 08:00 UTC (= 1:30 PM IST).
+One cron job, twice a day: 04:30 and 16:30 UTC (= 10:00 AM and 10:00 PM IST).
 
 Each job:
   1. Runs run_sync()
@@ -52,6 +52,11 @@ def _result_to_dict(result: RunResult, run_type: str = "SYNC") -> dict:
         "misses": result.misses,
         "forecast_deals": result.forecast_deals,
         "forecast_weighted": round(result.forecast_weighted),
+        "source_filled": result.source_filled,
+        "source_analysis": result.source_analysis,
+        "source_legacy": result.source_legacy,
+        "source_unresolved": result.source_unresolved,
+        "source_skipped": result.source_skipped,
     }
 
 
@@ -144,16 +149,16 @@ def start_scheduler() -> None:
 
     _scheduler.add_job(
         _sync_job,
-        trigger=CronTrigger(hour=8, minute=0, timezone="UTC"),
-        id="sync_daily",
-        name="HubSpot Sync — Daily (08:00 UTC)",
+        trigger=CronTrigger(hour="4,16", minute=30, timezone="UTC"),
+        id="sync_twice_daily",
+        name="HubSpot Sync — 10:00 and 22:00 IST (04:30 / 16:30 UTC)",
         max_instances=1,
         replace_existing=True,
         misfire_grace_time=300,
     )
 
     _scheduler.start()
-    logger.info("Scheduler started — job: sync_daily (08:00 UTC)")
+    logger.info("Scheduler started — job: sync_twice_daily (04:30 + 16:30 UTC)")
 
 
 def stop_scheduler() -> None:
