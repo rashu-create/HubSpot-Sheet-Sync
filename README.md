@@ -53,8 +53,7 @@ tabs. A forecast failure is recorded as `Forecast: …` and never stops the row 
 ## Column map
 
 Defined in `src/mapping.py` (`COLUMN_MAP`; `SOURCE_COL`). **SKIP** columns are manual and never written.
-Layout after the 2026-10 move (**branch `feat/source-col-move`, live only after the cutover** — until then the
-sheet is still the old layout and the header guard blocks writes):
+Layout since the 2026-10-22 move ("Source of meeting" went to E, the old E..AF shifted right by one):
 A = Domain (input, never written) · B Date of First Meeting (SKIP) · C Opportunity? · D Owner? ·
 **E Source of meeting (Muni Sheet)** · F Priority · G ICP Segment · H ICP Size · I Funding · J Employee Count ·
 K Size of Sales Team · L Job Title of Champion · M–O L1/L2/L3 Qualified · P–R L1/L2/L3 Comments · S Next Steps ·
@@ -74,7 +73,9 @@ fallback. Never blanks a cell. Preview any change with the read-only `FORCE_IPV4
 AEs can edit **Next Steps** (col S) and **Due Date** (col T) in the sheet; valid edits are pushed to the HubSpot deal
 (`next_steps_management`, `next_steps_due_date_management` — the same properties the sheet reads first, and the ones
 slack-bot's Next Steps Alerts use). Runs inside every sync (10 AM / 10 PM IST). `NEXT_STEPS_WRITEBACK` = `off`
-(default) | `dry_run` (decisions logged as WOULD_UPDATE, nothing sent, AE edits kept) | `on`.
+(default) | `dry_run` (decisions logged as WOULD_UPDATE, nothing sent, AE edits kept) | `on`. With `dry_run`,
+`NEXT_STEPS_LIVE_FROM=YYYY-MM-DD` (IST date) switches it to `on` by itself from that date (set to 2026-10-26 in
+production); `off` is the kill switch (edit the VM `.env` and restart).
 - **How it tells an AE edit from a HubSpot edit:** a snapshot (`data/next_steps_state.json`, on the VM only) of the values
   the sync last left in each cell. Sheet != snapshot = AE edit. The HubSpot side uses the same deal -> company fallback
   as the cell, so they compare like for like. First sight of a row only records a baseline (never pushes).
