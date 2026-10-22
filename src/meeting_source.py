@@ -13,7 +13,7 @@ Copied from meeting-booked-done-analysis @ 637c588 (keep in sync if the original
 Resolution order for a pipeline row (domain + "Date of First Meeting" B):
   1. analysis_exact    the meeting whose Meeting Date + Days Late == B (the one the analysis joined)
   2. analysis_before   the latest meeting on or before B + 1 day
-  3. analysis_earliest the earliest meeting
+  3. analysis_earliest the earliest meeting, only if it is within 30 days after B (else unresolved here)
   4. legacy            the old "Weekly Meetings Booked update" sheet (sheets.build_sdr_map)
 Rebooked child rows ("Rebooking of" filled) and "Unknown" sources are never used.
 """
@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 DATA_TAB = "Data"
 ALIAS_TAB = "Domain Aliases"
 UNKNOWN = "Unknown"
+MAX_EARLIEST_GAP_DAYS = 30   # the "earliest meeting" rule only applies within this many days after the row's date
 
 # Same hardcoded alias the analysis carries in src/match.py.
 _HARDCODED_ALIASES = {"usegitai.com": "usegit.ai"}
@@ -267,7 +268,11 @@ def pick_source(domain: str, first_meeting: date | None, meetings: list[Meeting]
         before = [m for m in mine if m.mtg <= first_meeting + timedelta(days=1)]
         if before:
             return max(before, key=lambda m: m.mtg).src, "analysis_before"
-    return min(mine, key=lambda m: m.mtg).src, "analysis_earliest"
+    earliest = min(mine, key=lambda m: m.mtg)
+    # A meeting months after the row's date is a different engagement, not this row's meeting.
+    if first_meeting is not None and earliest.mtg > first_meeting + timedelta(days=MAX_EARLIEST_GAP_DAYS):
+        return None
+    return earliest.src, "analysis_earliest"
 
 
 def resolve_sources(rows: list[tuple[int, str, date | None]], analysis: AnalysisData,

@@ -181,9 +181,31 @@ def test_one_day_slack_for_the_12pm_ist_cutoff():
     assert pick_source("t.com", D(2026, 2, 10), meetings, {}) == ("A", "analysis_before")
 
 
-def test_falls_back_to_the_earliest_meeting_when_all_are_later():
-    meetings = [M("t.com", D(2026, 4, 1), "B"), M("t.com", D(2026, 3, 1), "A")]
+def test_falls_back_to_the_earliest_meeting_when_all_are_later_but_close():
+    meetings = [M("t.com", D(2026, 3, 5), "B"), M("t.com", D(2026, 3, 1), "A")]
     assert pick_source("t.com", D(2026, 2, 10), meetings, {}) == ("A", "analysis_earliest")
+
+
+def test_earliest_meeting_exactly_30_days_after_is_still_used():
+    meetings = [M("t.com", D(2026, 3, 12), "A")]
+    assert pick_source("t.com", D(2026, 2, 10), meetings, {}) == ("A", "analysis_earliest")
+
+
+def test_earliest_meeting_more_than_30_days_after_is_not_used():
+    # e.g. signalwire.com: the row's first meeting is 6 Jan but the only booked meeting is 8 Oct.
+    meetings = [M("t.com", D(2026, 3, 13), "A")]
+    assert pick_source("t.com", D(2026, 2, 10), meetings, {}) is None
+
+
+def test_far_earliest_meeting_leaves_the_row_to_the_legacy_sheet():
+    analysis = AnalysisData(meetings=[M("t.com", D(2026, 10, 8), "Ahmed")], alias_map={}, alias_problems=[])
+    got = resolve_sources([(2, "t.com", D(2026, 1, 6))], analysis, {"t.com": "Old outbound"})
+    assert got == {2: ("Old outbound", "legacy")}
+
+
+def test_far_earliest_meeting_with_no_legacy_value_is_unresolved():
+    analysis = AnalysisData(meetings=[M("t.com", D(2026, 10, 8), "Ahmed")], alias_map={}, alias_problems=[])
+    assert resolve_sources([(2, "t.com", D(2026, 1, 6))], analysis, {}) == {}
 
 
 def test_missing_first_meeting_date_uses_the_earliest_meeting():
