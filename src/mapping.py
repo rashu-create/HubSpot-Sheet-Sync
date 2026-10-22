@@ -31,6 +31,7 @@ DEAL_PROPERTIES = [
     "closed_lost_details",
     "createdate",
     "amount",          # deal amount in USD
+    "dealname",        # shown in the Next Steps sync log
 ]
 
 COMPANY_PROPERTIES = [
@@ -102,6 +103,14 @@ COLUMN_MAP = [
     # col AN = SKIP (Intent signals — manual)
     ("AO", "Deal Value",                         "deal",     "amount",                            "number"),
 ]
+
+def _letter_of(header: str) -> str:
+    """Column letter of a COLUMN_MAP header."""
+    return next(entry[0] for entry in COLUMN_MAP if entry[1] == header)
+
+
+NEXT_STEPS_COL = _letter_of("Next Steps")     # S
+DUE_DATE_COL = _letter_of("Due Date")         # T
 
 # ── Column letter ↔ index helpers ─────────────────────────────────────────────
 

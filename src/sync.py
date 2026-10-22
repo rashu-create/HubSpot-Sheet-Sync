@@ -20,6 +20,7 @@ load_dotenv()
 import src.forecast as forecast
 import src.hubspot as hubspot
 import src.meeting_source as meeting_source
+import src.next_steps_sync as next_steps_sync
 import src.sheets as sheets
 from src.mapping import SOURCE_COL
 
@@ -47,6 +48,12 @@ class RunResult:
     source_legacy: int = 0           #   ...of which from the old Weekly Meetings sheet
     source_unresolved: int = 0       # rows with no source anywhere (existing value left alone)
     source_skipped: bool = False     # column skipped this run because a source sheet couldn't be read
+    ns_mode: str = "off"             # Next Steps / Due Date write-back mode this run: off | dry_run | on
+    ns_updated: int = 0              # fields pushed to HubSpot
+    ns_would_update: int = 0         # fields a dry run would push
+    ns_conflicts: int = 0            # AE edits overruled because HubSpot changed too
+    ns_blocked: int = 0              # edits refused (emptied cell / invalid date)
+    ns_errors: int = 0               # deals whose HubSpot update failed
 
 
 def run_sync(dry_run: bool = False) -> RunResult:
@@ -55,8 +62,8 @@ def run_sync(dry_run: bool = False) -> RunResult:
     Steps:
       1. Load Source of meeting data (analysis Data tab + legacy sheet)
       2. Read pipeline domains from pipeline sheet
-      3. For each row: call HubSpot, inject SDR value, collect update
-      4. Write all updates to sheet (unless dry_run)
+      3. For each row: call HubSpot, inject the source, plan the Next Steps write-back, collect update
+      4. Push valid Next Steps / Due Date edits, write all updates to the sheet (unless dry_run)
       5. Return RunResult
 
     Errors during individual row lookups are logged and the row is counted as
@@ -72,6 +79,7 @@ def run_sync(dry_run: bool = False) -> RunResult:
     forecast_result = forecast.ForecastResult()
     source_filled = source_analysis = source_legacy = source_unresolved = 0
     source_skipped = False
+    ns = next_steps_sync.NextStepsSync.from_env(sync_dry_run=dry_run)
 
     try:
         # 1. Source of meeting inputs. A failure skips the source column for this run (it is never
@@ -133,6 +141,9 @@ def run_sync(dry_run: bool = False) -> RunResult:
             source_legacy = source_filled - source_analysis
             source_unresolved = rows_total - source_filled
 
+        # 2c. Next Steps / Due Date write-back: layout check, current cells, snapshot (off by default)
+        ns.prepare(domain_rows)
+
         # 3. Pre-build deal map (deals → companies → domains) for reliable lookup
         try:
             hubspot.prebuild_deal_map()
@@ -153,12 +164,17 @@ def run_sync(dry_run: bool = False) -> RunResult:
                 logger.info("No HubSpot match for domain %r (row %d)", domain, row_idx)
                 misses.append(domain)
                 rows_skipped += 1
+                ns.add_row(row_idx, domain, {}, None)
                 # The source does not depend on HubSpot, so still write it for this row.
                 if sources is not None and row_idx in sources:
                     updates.append({"row": row_idx, "values": {SOURCE_COL: sources[row_idx][0]}})
                 # Rate floor between rows (rate limiter handles per-call)
                 time.sleep(0.15)
                 continue
+
+            # Meta keys (underscore) are for the write-back only and are never written to the sheet.
+            meta = {k: row_data.pop(k) for k in [k for k in row_data if k.startswith("_")]}
+            ns.add_row(row_idx, domain, meta, row_data)
 
             # Source of meeting (col E): only ever written when resolved — an unresolved or skipped
             # column leaves whatever is already in the sheet.
@@ -174,6 +190,7 @@ def run_sync(dry_run: bool = False) -> RunResult:
 
         # 5. Write to sheet
         if not dry_run:
+            ns.before_write(updates)          # race guard + push valid Next Steps / Due Date edits to HubSpot
             if updates:
                 logger.info("Writing %d rows to sheet...", len(updates))
                 try:
@@ -183,6 +200,7 @@ def run_sync(dry_run: bool = False) -> RunResult:
                     errors.append(f"Sheet write failed: {exc}")
             else:
                 logger.info("No rows to write (all were misses or errors)")
+            ns.after_write()                  # snapshot from what the sheet holds now + decision log
         else:
             logger.info(
                 "DRY RUN: would write %d rows, skip %d rows, %d errors",
@@ -203,6 +221,8 @@ def run_sync(dry_run: bool = False) -> RunResult:
         logger.error("Forecast refresh failed: %s", exc, exc_info=True)
         errors.append(f"Forecast: {exc}")
 
+    errors.extend(ns.errors)
+    ns_summary = ns.summary()
     finished_at = datetime.utcnow()
 
     result = RunResult(
@@ -220,6 +240,12 @@ def run_sync(dry_run: bool = False) -> RunResult:
         source_legacy=source_legacy,
         source_unresolved=source_unresolved,
         source_skipped=source_skipped,
+        ns_mode=ns.mode,
+        ns_updated=ns_summary["updated"],
+        ns_would_update=ns_summary["would_update"],
+        ns_conflicts=ns_summary["conflicts"],
+        ns_blocked=ns_summary["blocked"],
+        ns_errors=ns_summary["errors"],
     )
 
     logger.info(

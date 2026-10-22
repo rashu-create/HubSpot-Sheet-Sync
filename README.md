@@ -69,6 +69,26 @@ Taken from the Meeting Booked vs Done analysis (`src/meeting_source.py`): the me
 Date of First Meeting, else the nearest earlier one, else the earliest; the old Weekly Meetings sheet is the
 fallback. Never blanks a cell. Preview any change with the read-only `FORCE_IPV4=1 python scripts/source_diff.py`.
 
+## Next Steps / Due Date two-way sync (S / T → HubSpot)
+
+AEs can edit **Next Steps** (col S) and **Due Date** (col T) in the sheet; valid edits are pushed to the HubSpot deal
+(`next_steps_management`, `next_steps_due_date_management` — the same properties the sheet reads first, and the ones
+slack-bot's Next Steps Alerts use). Runs inside every sync (10 AM / 10 PM IST). `NEXT_STEPS_WRITEBACK` = `off`
+(default) | `dry_run` (decisions logged as WOULD_UPDATE, nothing sent, AE edits kept) | `on`.
+- **How it tells an AE edit from a HubSpot edit:** a snapshot (`data/next_steps_state.json`, on the VM only) of the values
+  the sync last left in each cell. Sheet != snapshot = AE edit. The HubSpot side uses the same deal -> company fallback
+  as the cell, so they compare like for like. First sight of a row only records a baseline (never pushes).
+- **Rules:** HubSpot wins a conflict (both changed) and it is logged; a cleared cell is restored, never pushed; a Due Date
+  must be a real date between 30 days ago and 1 year ahead; rows without a matched deal or with a duplicate domain are
+  skipped; a cell edited *while a run is in flight* is left alone until the next run.
+- **Log:** every decision goes to the tab `HubSpot Next Steps Sync Logs` of the Kaori Logs sheet
+  (`NEXT_STEPS_LOG_SHEET_ID`): UPDATED / WOULD_UPDATE / CONFLICT_HUBSPOT_WINS / BLOCKED_EMPTY / BLOCKED_INVALID_DATE /
+  ERROR / SKIPPED_* plus one SUMMARY row per run. Slack gets one summary line.
+- **Sheet guardrails:** `scripts/setup_next_steps_guardrails.py --apply` adds a "valid date" rule on Due Date and header notes
+  (never touches conditional formats).
+- Code: `src/next_steps.py` (rules, pure), `src/next_steps_sync.py` (per-run orchestration), `src/next_steps_log.py`,
+  `src/next_steps_state.py`, `hubspot.push_deal_updates`.
+
 ## Header guard
 
 Every write first checks row 1 against `COLUMN_MAP`; if a column was inserted, moved or renamed nothing is written

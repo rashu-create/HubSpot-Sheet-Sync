@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-22 — Release 3: Next Steps / Due Date two-way sync (branch `feat/next-steps-writeback`; ships OFF/dry-run)
+
+### Added
+- **AE edits in the sheet now flow to HubSpot.** Next Steps (S) and Due Date (T) edits are pushed to the deal properties `next_steps_management` / `next_steps_due_date_management` at the 10 AM and 10 PM IST syncs. Mode switch `NEXT_STEPS_WRITEBACK=off|dry_run|on` (default off). `dry_run` logs what would be sent, sends nothing and leaves AE edits in place.
+- **Rules (Rashu):** HubSpot wins conflicts (and it is reported); a cleared cell is restored from HubSpot, never pushed; Due Date must be a real date (today-30d .. +365d); rows without a deal / duplicate domains are skipped; a cell edited during the run is left for the next run; the first sight of a row only records a baseline.
+- **Mechanics:** snapshot of the values last left in the sheet (`data/next_steps_state.json`, atomic writes, rebuilt by re-reading the sheet after the write) distinguishes AE edits from HubSpot edits; HubSpot "now" uses the same deal->company fallback as the cell; both sides normalised (whitespace, line endings, dates) so formatting is never mistaken for an edit; Next Steps text is written with a leading apostrophe when Sheets would reinterpret it (`=`, `+`, `-`, `@`, numbers/dates). One PATCH per deal so one failure never blocks the others.
+- **Log tab** `HubSpot Next Steps Sync Logs` (Kaori Logs sheet, `NEXT_STEPS_LOG_SHEET_ID`): one row per actionable decision + a SUMMARY row per run; a failed log write is reported and never fails the sync. Slack success line "Next steps → HubSpot: …" and `ns_*` fields in the run history.
+- `scripts/setup_next_steps_guardrails.py`: strict "valid date" rule on the Due Date column + header notes (does not touch conditional formats).
+- New modules: `next_steps.py`, `next_steps_sync.py`, `next_steps_log.py`, `next_steps_state.py`; `hubspot.push_deal_updates`; `sheets.read_next_steps_cells` / `read_pipeline_header_row`; `get_row_data` exposes `_deal_id/_deal_name/_hs_s/_hs_t` (never written); `dealname` is now fetched.
+- The feature is skipped for a run (reported in `errors`) if the S/T headers are not where `COLUMN_MAP` says, or the sheet can't be read.
+
+### Verified
+- Token scope: the HubSpot private-app token has `crm.objects.deals.write` (read-only token-info call). Write access to the Kaori Logs tab confirmed (header row written).
+- Tests: 343 (was 243). Mutation-checked: disabling the race guard, letting dry_run push, or allowing a cleared field each fails a test.
+
+---
 ## 2026-10-22 — PREP (NOT DEPLOYED): "Source of meeting" moves from AG to col E (branch `feat/source-col-move`)
 
 ### Changed — `src/mapping.py`, `src/sync.py`, `scripts/setup_sheet.py`, `scripts/source_diff.py`

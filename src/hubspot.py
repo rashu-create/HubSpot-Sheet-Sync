@@ -928,11 +928,50 @@ def get_row_data(domain: str) -> dict | None:
 
             result[col_letter] = formatted
 
+        # Meta for the Next Steps write-back. Underscore keys are never written to the sheet (sync.py pops them).
+        result["_deal_id"] = str(deal_id)
+        result["_deal_name"] = deal_props.get("dealname") or ""
+        result["_hs_s"] = computed["next_steps_r"]     # HubSpot now: deal value, else company value (as the cell)
+        result["_hs_t"] = computed["next_steps_s"]
+
         return result
 
     except Exception as exc:
         logger.error("HubSpot get_row_data failed for domain %r: %s", domain, exc, exc_info=True)
         return None
+
+
+# ── Write-back (Next Steps / Due Date) ────────────────────────────────────────
+
+def push_deal_updates(updates: dict[str, dict]) -> dict[str, tuple[bool, str]]:
+    """PATCH each deal with its properties. -> {deal_id: (ok, detail)}.
+
+    One request per deal on purpose: a failure (403 scope, a deleted deal, a bad value) is isolated to that deal
+    and reported, and never stops the others.
+    """
+    token = _token()
+    if not token:
+        return {deal_id: (False, "HUBSPOT_API_TOKEN not set") for deal_id in updates}
+
+    results: dict[str, tuple[bool, str]] = {}
+    for deal_id, properties in updates.items():
+        try:
+            resp = _request(
+                "PATCH", f"{_BASE}/crm/v3/objects/deals/{deal_id}",
+                token=token, json={"properties": properties},
+            )
+        except Exception as exc:
+            results[deal_id] = (False, f"{type(exc).__name__}: {exc}")
+            continue
+        if resp.status_code == 200:
+            results[deal_id] = (True, "")
+        else:
+            try:
+                message = resp.json().get("message") or resp.text[:200]
+            except Exception:
+                message = resp.text[:200]
+            results[deal_id] = (False, f"{resp.status_code} {message}")
+    return results
 
 
 # ── Cache management ──────────────────────────────────────────────────────────

@@ -19,7 +19,7 @@ from gspread.utils import rowcol_to_a1
 from google.oauth2.service_account import Credentials
 
 from src.header_guard import HeaderMismatchError, check_headers
-from src.mapping import col_letter_to_index
+from src.mapping import DUE_DATE_COL, NEXT_STEPS_COL, col_letter_to_index
 from src.meeting_source import UNKNOWN, norm_domain, src_map, to_date
 
 logger = logging.getLogger(__name__)
@@ -89,6 +89,37 @@ def read_pipeline_first_meetings() -> dict[int, "date | None"]:
     worksheet = _get_client().open_by_key(sheet_id).worksheet(tab_name)
     values = worksheet.get("B2:B", value_render_option="UNFORMATTED_VALUE")
     return {idx + 2: to_date(row[0] if row else None) for idx, row in enumerate(values)}
+
+
+def read_pipeline_header_row() -> list[str]:
+    """Row 1 of the pipeline tab (for layout checks before a feature that reads/writes by column letter)."""
+    sheet_id = os.getenv("PIPELINE_SHEET_ID", "").strip()
+    tab_name = os.getenv("PIPELINE_TAB_NAME", "Sales Pipeline 2026").strip()
+    if not sheet_id:
+        raise RuntimeError("PIPELINE_SHEET_ID is not set")
+    return _get_client().open_by_key(sheet_id).worksheet(tab_name).row_values(1)
+
+
+def read_next_steps_cells() -> dict[int, tuple]:
+    """{sheet row: (Next Steps cell, Due Date cell)} for rows 2..end, read unformatted.
+
+    Unformatted so a date comes back as its serial number whatever the cell format is. One API call.
+    """
+    sheet_id = os.getenv("PIPELINE_SHEET_ID", "").strip()
+    tab_name = os.getenv("PIPELINE_TAB_NAME", "Sales Pipeline 2026").strip()
+    if not sheet_id:
+        raise RuntimeError("PIPELINE_SHEET_ID is not set")
+
+    worksheet = _get_client().open_by_key(sheet_id).worksheet(tab_name)
+    ns_vals, due_vals = worksheet.batch_get(
+        [f"{NEXT_STEPS_COL}2:{NEXT_STEPS_COL}", f"{DUE_DATE_COL}2:{DUE_DATE_COL}"],
+        value_render_option="UNFORMATTED_VALUE",
+    )
+
+    def cell(vals, i):
+        return vals[i][0] if i < len(vals) and vals[i] else ""
+
+    return {i + 2: (cell(ns_vals, i), cell(due_vals, i)) for i in range(max(len(ns_vals), len(due_vals)))}
 
 
 def _pick_column(headers: list[str], *candidates) -> int | None:

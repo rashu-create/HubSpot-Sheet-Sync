@@ -45,6 +45,20 @@ def notify_success(result: RunResult) -> None:
             f"{result.source_unresolved} unresolved"
         )
 
+    if result.ns_mode == "dry_run":
+        lines.append(
+            f"✍️ Next steps → HubSpot (DRY RUN, nothing sent): {result.ns_would_update} would update, "
+            f"{result.ns_conflicts} conflict{'s' if result.ns_conflicts != 1 else ''}, "
+            f"{result.ns_blocked} blocked — see the log tab"
+        )
+    elif result.ns_mode == "on":
+        failed = f", {result.ns_errors} FAILED" if result.ns_errors else ""
+        lines.append(
+            f"✍️ Next steps → HubSpot: {result.ns_updated} updated, "
+            f"{result.ns_conflicts} conflict{'s' if result.ns_conflicts != 1 else ''}, "
+            f"{result.ns_blocked} blocked{failed} — see the log tab"
+        )
+
     if result.forecast_deals:
         lines.append(
             f"📈 Sales Forecast tabs refreshed (Overview + AEs): {result.forecast_deals} deals, "

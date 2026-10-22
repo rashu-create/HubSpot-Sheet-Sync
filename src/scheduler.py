@@ -57,6 +57,12 @@ def _result_to_dict(result: RunResult, run_type: str = "SYNC") -> dict:
         "source_legacy": result.source_legacy,
         "source_unresolved": result.source_unresolved,
         "source_skipped": result.source_skipped,
+        "ns_mode": result.ns_mode,
+        "ns_updated": result.ns_updated,
+        "ns_would_update": result.ns_would_update,
+        "ns_conflicts": result.ns_conflicts,
+        "ns_blocked": result.ns_blocked,
+        "ns_errors": result.ns_errors,
     }
 
 
