@@ -108,6 +108,12 @@ Source-of-meeting move: `docs/cutover-source-col-move.md`.
 | `~/slack-bot` `pipeline_sheet_api.py` | Column A only | VM |
 | `~/weekly-sales-tracker` | A different sheet (the manager's own) | — |
 
+**Tabs in this sheet written by another service** (this service never touches them; do not rename or move their columns):
+
+| Tab | Written by | When |
+|---|---|---|
+| `Meetings Booked` | `~/meeting-booked-done-analysis` `meetings_booked_tab.py` (VM timer `meetings-booked-tab`) — every 2026 booked meeting + whether it happened. Rebuilt weekly; the only hand-typed column is `Link to Slack` (kept by Key). Has its own header guard. | Mon 08:00 IST |
+
 Previous column change (2026-09-29, Qualified inserted at AI) was coordinated across
 hubspot-sheet-sync and ae-kpi-tracker; see `docs/superpowers/plans/2026-09-29-qualified-column.md`.
 
