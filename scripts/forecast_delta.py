@@ -34,21 +34,12 @@ from google.oauth2.service_account import Credentials
 
 import src.forecast as forecast
 import src.hubspot as hubspot
+from src.manager_sheet import key       # shared name-matching rule
 
 MANAGER_TAB = "Oct'26 Pipeline"
 # October block = DB:DG down to the row before the "November Pipeline" header; Broader = DI:DT.
 _NOV_HEADER = "November Pipeline"
-_SUFFIX = r"\b(inc|labs?|ai|io|hq|dev|technologies|solutions|qa|corp|co|ltd|llc|com)\b"
 _CLOSED_NON_WON = {"Closed Lost", "Irrelevant", "Pushed Out", "Meeting Didn’t Happen", "Meeting Didn't Happen"}
-
-
-def key(name: str) -> str:
-    """Normalise a company/deal name for matching (case, punctuation, corporate suffixes)."""
-    n = (name or "").lower()
-    n = re.sub(r"\.(io|ai|dev|com|sh|so|co)\b", "", n)
-    n = re.sub(r"[^a-z0-9 ]", " ", n)
-    n = re.sub(_SUFFIX, " ", n)
-    return re.sub(r"\s+", "", n)
 
 
 def _money(s: str) -> float:

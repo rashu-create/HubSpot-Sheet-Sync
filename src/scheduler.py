@@ -1,6 +1,9 @@
 """APScheduler configuration for HubSpot→Sheet sync.
 
-One cron job, twice a day: 04:30 and 16:30 UTC (= 10:00 AM and 10:00 PM IST).
+One job, four times a day, in UTC: 20:00, 04:30, 08:00 and 16:30
+(= 01:30 AM, 10:00 AM, 01:30 PM and 10:00 PM IST). It is ONE job with a combined trigger
+(not four jobs) so max_instances=1 really does stop two runs from overlapping.
+The Next Steps write-back runs inside run_sync, so it follows the same four times.
 
 Each job:
   1. Runs run_sync()
@@ -14,10 +17,11 @@ Set max_instances=1 per job to prevent overlap.
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.combining import OrTrigger
 from apscheduler.triggers.cron import CronTrigger
 
 from src.sync import RunResult, run_sync
@@ -28,6 +32,10 @@ logger = logging.getLogger(__name__)
 _DATA_DIR = Path(__file__).parent.parent / "data"
 _HISTORY_FILE = _DATA_DIR / "run_history.json"
 _MAX_HISTORY = 100
+
+# UTC fire times: 10:00 + 22:00 IST, and 13:30 IST + 01:30 IST (next day)
+_SYNC_TIMES_UTC = (("4,16", 30), ("8,20", 0))
+_SYNC_JOB_ID = "sync_four_daily"
 
 # Singleton scheduler instance
 _scheduler: BackgroundScheduler | None = None
@@ -155,16 +163,16 @@ def start_scheduler() -> None:
 
     _scheduler.add_job(
         _sync_job,
-        trigger=CronTrigger(hour="4,16", minute=30, timezone="UTC"),
-        id="sync_twice_daily",
-        name="HubSpot Sync — 10:00 and 22:00 IST (04:30 / 16:30 UTC)",
+        trigger=OrTrigger([CronTrigger(hour=h, minute=m, timezone="UTC") for h, m in _SYNC_TIMES_UTC]),
+        id=_SYNC_JOB_ID,
+        name="HubSpot Sync — 01:30, 10:00, 13:30, 22:00 IST (20:00 / 04:30 / 08:00 / 16:30 UTC)",
         max_instances=1,
         replace_existing=True,
         misfire_grace_time=300,
     )
 
     _scheduler.start()
-    logger.info("Scheduler started — job: sync_twice_daily (04:30 + 16:30 UTC)")
+    logger.info("Scheduler started — job: %s (20:00, 04:30, 08:00, 16:30 UTC)", _SYNC_JOB_ID)
 
 
 def stop_scheduler() -> None:
@@ -179,13 +187,21 @@ def stop_scheduler() -> None:
         _scheduler = None
 
 
-def get_next_run_times() -> list[str]:
-    """Return a list of next run times (ISO strings) for scheduled jobs."""
+def get_next_run_times(count: int = 4, now: datetime | None = None) -> list[str]:
+    """Return the next `count` scheduled run times (ISO strings, oldest first).
+
+    The sync is one job with a combined trigger, so job.next_run_time only knows the very next run;
+    the following ones are worked out from the trigger itself.
+    """
     if _scheduler is None:
         return []
-    times = []
+    times: list = []
     for job in _scheduler.get_jobs():
-        next_run = job.next_run_time
-        if next_run:
-            times.append(next_run.isoformat())
-    return sorted(times)
+        prev, current = None, now or datetime.now(timezone.utc)
+        for _ in range(count):
+            nxt = job.trigger.get_next_fire_time(prev, current)
+            if nxt is None:
+                break
+            times.append(nxt)
+            prev, current = nxt, nxt
+    return [t.isoformat() for t in sorted(times)[:count]]

@@ -1,4 +1,4 @@
-"""Scheduler configuration: the sync runs at 10:00 and 22:00 IST (04:30 and 16:30 UTC)."""
+"""Scheduler configuration: the sync runs 4x a day - 01:30, 10:00, 13:30 and 22:00 IST (20:00, 04:30, 08:00, 16:30 UTC)."""
 
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -29,22 +29,36 @@ def _fire_times(job, start, count):
     return times
 
 
-def test_single_twice_daily_job_is_registered(started_scheduler):
+def test_single_four_daily_job_is_registered(started_scheduler):
     jobs = started_scheduler.get_jobs()
-    assert [j.id for j in jobs] == ["sync_twice_daily"]
+    assert [j.id for j in jobs] == ["sync_four_daily"]
 
 
-def test_job_fires_at_0430_and_1630_utc(started_scheduler):
-    job = started_scheduler.get_job("sync_twice_daily")
+def test_job_fires_at_the_four_ist_times(started_scheduler):
+    job = started_scheduler.get_job("sync_four_daily")
     start = datetime(2026, 10, 22, 0, 0, tzinfo=timezone.utc)
-    got = _fire_times(job, start, 4)
-    assert [(t.hour, t.minute) for t in got] == [(4, 30), (16, 30), (4, 30), (16, 30)]
+    got = _fire_times(job, start, 8)
+    # 10:00 IST, 13:30 IST, 22:00 IST, 01:30 IST (next day) - in UTC
+    assert [(t.hour, t.minute) for t in got] == [(4, 30), (8, 0), (16, 30), (20, 0)] * 2
     assert got[0].date().isoformat() == "2026-10-22"
-    assert got[2].date().isoformat() == "2026-10-23"
+    assert got[4].date().isoformat() == "2026-10-23"
 
 
 def test_job_cannot_overlap(started_scheduler):
-    assert started_scheduler.get_job("sync_twice_daily").max_instances == 1
+    assert started_scheduler.get_job("sync_four_daily").max_instances == 1
+
+
+def test_get_next_run_times_lists_the_next_four_runs(started_scheduler):
+    got = scheduler.get_next_run_times(now=datetime(2026, 10, 22, 0, 0, tzinfo=timezone.utc))
+    assert len(got) == 4
+    parsed = [datetime.fromisoformat(t) for t in got]
+    assert [(t.hour, t.minute) for t in parsed] == [(4, 30), (8, 0), (16, 30), (20, 0)]
+    assert parsed == sorted(parsed)
+
+
+def test_get_next_run_times_is_empty_when_scheduler_is_off():
+    scheduler._scheduler = None
+    assert scheduler.get_next_run_times() == []
 
 
 def test_disabled_scheduler_registers_nothing(monkeypatch):

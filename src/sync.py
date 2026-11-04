@@ -217,6 +217,7 @@ def run_sync(dry_run: bool = False) -> RunResult:
     #    affects the row sync above. (If the pipeline read failed we returned early, above.)
     try:
         forecast_result = forecast.run_forecast_sync(dry_run=dry_run)
+        errors.extend(f"Forecast: {w}" for w in forecast_result.warnings)
     except Exception as exc:
         logger.error("Forecast refresh failed: %s", exc, exc_info=True)
         errors.append(f"Forecast: {exc}")

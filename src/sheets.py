@@ -215,7 +215,7 @@ _CURRENCY = {"type": "CURRENCY", "pattern": "$#,##0"}
 _PERCENT = {"type": "PERCENT", "pattern": "0%"}
 _BASE_TEXT = {"fontFamily": "Calibri", "fontSize": 10}       # every cell of a forecast tab
 _KPI_MONEY_COLS = (0, 2, 4)                                  # closed won / weighted / open
-_COL_WIDTHS = [170, 110, 150, 200, 90, 90, 80, 330, 60]      # per block column, px
+_COL_WIDTHS = [170, 110, 150, 200, 90, 90, 80, 330, 90, 260, 260, 80, 60]      # per block column, px
 
 
 def write_forecast_tab(
@@ -227,6 +227,7 @@ def write_forecast_tab(
     money_cols: list[int],
     col_widths: list[int] | None = None,
     percent_cols: list[int] = (),
+    clip_cols: list[int] = (),
 ) -> None:
     """Replace the entire contents and formatting of a sync-owned forecast tab.
 
@@ -234,7 +235,8 @@ def write_forecast_tab(
     (USER_ENTERED so HYPERLINK formulas work), then styles are applied.
     styles: (kind, row, col_start, col_end), 0-based, col_end exclusive.
     Touches ONLY `tab_name` - never the Sales Pipeline 2026 tab or any other.
-    `col_widths` (px, per block column) defaults to the Overview layout; `percent_cols` get a 0% format.
+    `col_widths` (px, per block column) defaults to the Overview layout; `percent_cols` get a 0% format;
+    `clip_cols` are clipped to one line (wrapStrategy CLIP, field-masked so Calibri 10 stays).
     """
     sheet_id = os.getenv("PIPELINE_SHEET_ID", "").strip()
     if not sheet_id:
@@ -282,6 +284,12 @@ def write_forecast_tab(
                           "startColumnIndex": off + pc, "endColumnIndex": off + pc + 1},
                 "cell": {"userEnteredFormat": {"numberFormat": _PERCENT}},
                 "fields": "userEnteredFormat.numberFormat"}})
+        for cc in clip_cols:
+            requests.append({"repeatCell": {
+                "range": {"sheetId": gid, "startRowIndex": 0, "endRowIndex": len(grid),
+                          "startColumnIndex": off + cc, "endColumnIndex": off + cc + 1},
+                "cell": {"userEnteredFormat": {"wrapStrategy": "CLIP"}},
+                "fields": "userEnteredFormat.wrapStrategy"}})
         for i, w in enumerate(widths[:block_width]):
             requests.append({"updateDimensionProperties": {
                 "range": {"sheetId": gid, "dimension": "COLUMNS",

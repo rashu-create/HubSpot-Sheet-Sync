@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src import forecast
+from src import manager_sheet as ms
 from src.forecast import (
     ForecastDeal,
     build_block,
@@ -21,11 +22,13 @@ NOW = datetime(2026, 10, 9, 8, 0)
 
 
 def _deal(name="Acme", owner="Harsha", amount=10_000, prob=0.6, section="HIGH",
-          stage="Trial", day=15, did="1", owners=None, icp="OSS", nxt=""):
+          stage="Trial", day=15, did="1", owners=None, icp="OSS", nxt="",
+          cohort="", champion="", buyer="", meetings=None, company=""):
     return ForecastDeal(
         id=did, name=name, owner_primary=owner, owners=owners or owner, amount=amount,
         close_date=date(2026, 10, day), stage_label=stage, stage_prob=prob, section=section,
-        icp_type=icp, next_steps=nxt,
+        icp_type=icp, next_steps=nxt, cohort=cohort, champion=champion, buyer=buyer,
+        meetings=meetings, company_name=company,
     )
 
 
@@ -183,10 +186,14 @@ _STAGES = {
 }
 
 
-def _raw(did, name, stage, cat, close="2026-10-15T00:00:00Z", amount="10000", owner="1"):
+_COMPANY = {"1": {"icp_type": "OSS", "cohort": "SMB", "champion": "Head of Growth - Jane", "company_name": "Keep Inc"}}
+
+
+def _raw(did, name, stage, cat, close="2026-10-15T00:00:00Z", amount="10000", owner="1", buyer=None):
     return {"id": did, "properties": {
         "dealname": name, "dealstage": stage, "hs_manual_forecast_category": cat,
         "closedate": close, "amount": amount, "hubspot_owner_id": owner, "hs_all_owner_ids": owner,
+        "buyer_designation": buyer,
     }}
 
 
@@ -195,7 +202,7 @@ class TestFetchForecastDeals:
         with patch("src.forecast.hubspot._get_sales_pipeline_id", return_value="default"), \
              patch("src.forecast._fetch_stage_meta", return_value=_STAGES), \
              patch("src.forecast._search_deals", return_value=raw), \
-             patch("src.forecast._fetch_company_icp", return_value={"1": "OSS"}), \
+             patch("src.forecast._fetch_company_props", return_value=_COMPANY), \
              patch("src.forecast.hubspot._get_owner_name", return_value="Harsha Agarwal"), \
              patch("src.forecast.hubspot._compute_owner_first_names", return_value="Harsha,Deeksha"):
             return forecast.fetch_forecast_deals("2026-10", "tok")
@@ -217,6 +224,17 @@ class TestFetchForecastDeals:
         assert d.owners == "Harsha | Deeksha"
         assert d.amount == 12_500 and d.icp_type == "OSS" and d.stage_prob == 0.6
 
+    def test_maps_cohort_champion_buyer_and_company_name(self):
+        d = self._run([_raw("1", "Keep", "s_trial", "HIGH", buyer=" CEO ")])[0]
+        assert d.cohort == "SMB"
+        assert d.champion == "Head of Growth - Jane"       # the whole company property, not just the designation
+        assert d.buyer == "CEO"
+        assert d.company_name == "Keep Inc"
+
+    def test_deal_without_a_company_gets_blank_company_fields(self):
+        d = self._run([_raw("9", "Orphan", "s_trial", "HIGH")])[0]
+        assert (d.cohort, d.champion, d.company_name, d.icp_type) == ("", "", "", "")
+
     def test_missing_amount_is_zero_not_a_crash(self):
         assert self._run([_raw("1", "NoAmt", "s_trial", "LOW", amount=None)])[0].amount == 0
 
@@ -230,6 +248,29 @@ class TestRunForecastSync:
     def _patched(self, deals):
         return patch("src.forecast.fetch_forecast_deals", return_value=deals), \
                patch("src.forecast.hubspot._token", return_value="tok")
+
+    @pytest.fixture(autouse=True)
+    def _manager_sheet(self):
+        """The real manager sheet is never read in tests."""
+        with patch("src.forecast.manager_sheet.load_rows", return_value=[]) as load:
+            self.load = load
+            yield
+
+    def test_meetings_are_filled_from_the_manager_sheet(self):
+        deal = _deal("Agora Deal", company="Agora")
+        self.load.return_value = [ms.ManagerRow("Agora", "CEO", 12, 16)]
+        p1, p2 = self._patched([deal])
+        with p1, p2, patch("src.sheets.write_forecast_tab"):
+            res = forecast.run_forecast_sync(dry_run=False, today=date(2026, 10, 9))
+        assert deal.meetings == 12 and res.warnings == []
+
+    def test_unreadable_manager_sheet_warns_but_still_writes_the_tabs(self):
+        self.load.side_effect = ms.ManagerSheetError("MANAGER_SHEET_ID is not set")
+        p1, p2 = self._patched([_deal()])
+        with p1, p2, patch("src.sheets.write_forecast_tab") as write:
+            res = forecast.run_forecast_sync(dry_run=False, today=date(2026, 10, 9))
+        assert res.written and write.call_count == 2
+        assert len(res.warnings) == 1 and "# of Meetings unavailable" in res.warnings[0]
 
     def test_dry_run_builds_but_does_not_write(self):
         p1, p2 = self._patched([_deal()])
@@ -329,7 +370,7 @@ class TestBuildAeGrid:
             [_nov(name="nov-high", section="HIGH", amount=99_000, did="5")],
         )
         grid, _ = forecast.build_ae_grid(deals, MONTHS, NOW)
-        names = [r[0] for r in grid if str(r[10]).startswith("=HYPERLINK")]
+        names = [r[0] for r in grid if str(r[-1]).startswith("=HYPERLINK")]
         assert names == ["won", "big-high", "small-high", "low", "nov-high"]
 
     def test_only_closed_won_rows_are_styled_green(self):
@@ -343,13 +384,13 @@ class TestBuildAeGrid:
         deals = _by_month([_deal(section="MEDIUM", prob=0.6, did="1"),
                            _deal("won", section="CLOSED", stage="Closed Won", prob=1.0, did="2")])
         grid, _ = forecast.build_ae_grid(deals, MONTHS, NOW)
-        rows = {r[0]: r for r in grid if str(r[10]).startswith("=HYPERLINK")}
+        rows = {r[0]: r for r in grid if str(r[-1]).startswith("=HYPERLINK")}
         assert (rows["Acme"][7], rows["Acme"][8]) == ("Medium", 0.6)
         assert (rows["won"][7], rows["won"][8]) == ("Closed", 1.0)
 
     def test_close_date_is_text_and_every_row_has_the_full_width(self):
         grid, _ = forecast.build_ae_grid(_by_month([_deal(day=7, did="1")]), MONTHS, NOW)
-        deal_row = next(r for r in grid if str(r[10]).startswith("=HYPERLINK"))
+        deal_row = next(r for r in grid if str(r[-1]).startswith("=HYPERLINK"))
         assert deal_row[6] == "'7 Oct"
         assert {len(r) for r in grid} == {forecast.AE_WIDTH}
 
@@ -425,10 +466,37 @@ class TestWriteForecastTab:
                   for r in reqs if "updateDimensionProperties" in r]
         assert widths == [50, 60]
 
+    def test_clip_columns_get_a_field_masked_wrap_strategy_on_every_block(self):
+        sheets, ss, ws, _ = self._run()
+        grid = [["a", "b", "", "a", "b"], ["c", "d", "", "c", "d"]]       # two blocks of 2 cols with a 1-col gap
+        with patch.dict("os.environ", {"PIPELINE_SHEET_ID": "sheet"}), \
+             patch("src.sheets._get_client", return_value=MagicMock(open_by_key=lambda _: ss)):
+            sheets.write_forecast_tab("T", grid, [], 2, 1, [0], clip_cols=[1])
+        reqs = [r["repeatCell"] for r in ss.batch_update.call_args.args[0]["requests"] if "repeatCell" in r]
+        clips = [r for r in reqs if r["cell"].get("userEnteredFormat", {}).get("wrapStrategy") == "CLIP"]
+        assert sorted(r["range"]["startColumnIndex"] for r in clips) == [1, 4]
+        assert all(r["fields"] == "userEnteredFormat.wrapStrategy" for r in clips)   # font untouched
+
+    def test_no_clip_request_when_no_clip_columns_are_given(self):
+        sheets, ss, ws, _ = self._run()
+        with patch.dict("os.environ", {"PIPELINE_SHEET_ID": "sheet"}), \
+             patch("src.sheets._get_client", return_value=MagicMock(open_by_key=lambda _: ss)):
+            sheets.write_forecast_tab("T", [["a"]], [], 1, 0, [0])
+        assert "wrapStrategy" not in str(ss.batch_update.call_args.args[0]["requests"])
+
 
 # ── integration with run_sync ─────────────────────────────────────────────────
 
 class TestSyncIntegration:
+    @patch("src.sync.sheets.read_pipeline_domains", return_value=[])
+    @patch("src.sync.sheets.build_sdr_map", return_value={})
+    def test_forecast_warnings_reach_the_run_errors(self, _s, _r):
+        from src.sync import run_sync
+        res = forecast.ForecastResult(warnings=["# of Meetings unavailable: boom"])
+        with patch("src.sync.forecast.run_forecast_sync", return_value=res):
+            result = run_sync(dry_run=True)
+        assert "Forecast: # of Meetings unavailable: boom" in result.errors
+
     @patch("src.sync.sheets.read_pipeline_domains", return_value=[])
     @patch("src.sync.sheets.build_sdr_map", return_value={})
     def test_forecast_failure_is_recorded_but_does_not_break_sync(self, _s, _r):
@@ -446,3 +514,103 @@ class TestSyncIntegration:
         with patch("src.sync.forecast.run_forecast_sync", return_value=fake):
             result = run_sync(dry_run=False)
         assert result.forecast_deals == 18 and result.forecast_weighted == 226_200.0
+
+
+# ── new columns: Cohort, Champion & Designation, Buyer & Designation, # of Meetings ──────────────────
+
+NEW_COLS = ["Cohort", "Champion & Designation", "Buyer & Designation", "# of Meetings"]
+
+
+class TestNewColumns:
+    def test_overview_columns_sit_after_next_steps_and_before_the_link(self):
+        c = forecast.COLUMNS
+        i = c.index("Next steps")
+        assert c[i + 1:i + 5] == NEW_COLS and c[-1] == "HubSpot"
+        assert forecast.BLOCK_WIDTH == 13
+
+    def test_ae_columns_sit_after_next_steps_and_before_the_link(self):
+        c = forecast.AE_COLUMNS
+        i = c.index("Next steps")
+        assert c[i + 1:i + 5] == NEW_COLS and c[-1] == "HubSpot"
+        assert forecast.AE_WIDTH == 15
+
+    def test_money_and_percent_columns_did_not_move(self):
+        assert forecast.COLUMNS[forecast.AMOUNT_COL] == "Amount"
+        assert forecast.COLUMNS[forecast.WEIGHTED_COL] == "Weighted"
+        assert forecast.AE_COLUMNS[forecast.AE_PROB_COL] == "Probability"
+
+    def test_overview_row_carries_the_values(self):
+        d = _deal("Agora", cohort="Commercial", champion="Growth Marketing Manager", buyer="CEO", meetings=12)
+        row = next(r for r in build_block([d], "2026-10", NOW).rows if r[0] == "Agora")
+        i = forecast.COLUMNS.index("Cohort")
+        assert row[i:i + 4] == ["Commercial", "Growth Marketing Manager", "CEO", 12]
+        assert "record/0-3/" in row[-1]
+
+    def test_missing_values_are_blank_cells_not_none(self):
+        row = next(r for r in build_block([_deal("Solo")], "2026-10", NOW).rows if r[0] == "Solo")
+        i = forecast.COLUMNS.index("Cohort")
+        assert row[i:i + 4] == ["", "", "", ""]
+
+    def test_zero_meetings_is_shown_as_zero(self):
+        row = next(r for r in build_block([_deal("Z", meetings=0)], "2026-10", NOW).rows if r[0] == "Z")
+        assert row[forecast.COLUMNS.index("# of Meetings")] == 0
+
+    def test_ae_row_carries_the_values(self):
+        d = _deal("Agora", owner="Harsha", cohort="SMB", champion="VP Marketing", buyer="CEO", meetings=5)
+        grid, _ = forecast.build_ae_grid(_by_month([d]), MONTHS, NOW)
+        row = next(r for r in grid if r[0] == "Agora")
+        i = forecast.AE_COLUMNS.index("Cohort")
+        assert row[i:i + 4] == ["SMB", "VP Marketing", "CEO", 5]
+        assert len(row) == forecast.AE_WIDTH
+
+    def test_every_block_row_is_padded_to_the_new_width(self):
+        b = build_block([_deal(cohort="SMB", meetings=3)], "2026-10", NOW)
+        assert {len(r) for r in b.rows} == {13}
+
+
+class TestCohort:
+    def test_cohort_uses_the_same_rule_as_the_pipeline_tab(self):
+        props = {"numberofemployees": "600", "r__size_of_sales_team": "1"}
+        assert forecast.cohort_of(props) == "Enterprise"
+        assert forecast.cohort_of({"numberofemployees": "250"}) == "Commercial"
+        assert forecast.cohort_of({"numberofemployees": "50", "r__size_of_sales_team": "3"}) == "SMB"
+        assert forecast.cohort_of({"numberofemployees": "50", "r__size_of_sales_team": "0"}) == "Startup"
+
+    def test_numberofemployees_wins_over_the_stale_import(self):
+        props = {"numberofemployees": "125", "employee_count": "900"}
+        assert forecast.cohort_of(props) == "Startup"
+
+    def test_company_with_no_data_is_startup_like_the_pipeline_tab(self):
+        assert forecast.cohort_of({}) == "Startup"
+
+
+class TestMatchMeetings:
+    def _m(self, *pairs):
+        return ms.meetings_by_key([ms.ManagerRow(n, "", c, i) for i, (n, c) in enumerate(pairs, 3)])
+
+    def test_company_name_is_tried_first_then_the_deal_name(self):
+        by_company = _deal("Some long deal title", company="Agora")
+        by_deal = _deal("Posit", company="Unrelated Co", did="2")
+        none = _deal("Nobody", company="Nobody Inc", did="3")
+        forecast.match_meetings([by_company, by_deal, none], self._m(("Agora", 12), ("Posit", 4)))
+        assert (by_company.meetings, by_deal.meetings, none.meetings) == (12, 4, None)
+
+    def test_company_name_beats_a_conflicting_deal_name_match(self):
+        d = _deal("Posit", company="Agora")
+        forecast.match_meetings([d], self._m(("Agora", 12), ("Posit", 4)))
+        assert d.meetings == 12
+
+    def test_matching_ignores_case_and_corporate_suffixes(self):
+        d = _deal("x", company="DIFY")
+        forecast.match_meetings([d], self._m(("Dify AI", 3)))
+        assert d.meetings == 3
+
+    def test_space_differences_do_not_cause_a_miss(self):
+        d = _deal("Virtuoso QA", company="Virtuoso QA")
+        forecast.match_meetings([d], self._m(("VirtuosoQA", 5)))
+        assert d.meetings == 5
+
+    def test_existing_value_is_not_overwritten_by_a_miss(self):
+        d = _deal("x", company="Nobody", meetings=7)
+        forecast.match_meetings([d], {})
+        assert d.meetings == 7

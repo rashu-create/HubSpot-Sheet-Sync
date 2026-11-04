@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-11-04 — sync four times a day; forecast tabs get Cohort / Champion / Buyer / # of Meetings
+
+### Changed
+- **Sync schedule: 4× a day** — 01:30, 10:00, 13:30 and 22:00 IST (20:00, 04:30, 08:00, 16:30 UTC). One job (`sync_four_daily`) with a combined
+  trigger, so `max_instances=1` still prevents overlap. The Next Steps / Due Date write-back runs inside every sync, so it also runs 4×/day.
+  `get_next_run_times()` now lists the next four fire times. ae-kpi-tracker moved to 08:15 UTC (after the 13:30 IST sync).
+- **`Sales Forecast - Overview` and `- AEs`: 4 new columns after "Next steps"** (Overview 13 columns, AEs 15):
+  - **Cohort** = the pipeline tab's "ICP - Size" rule (Enterprise ≥500 / Commercial ≥200 / SMB / Startup) via `hubspot._compute_icp_size`.
+  - **Champion & Designation** = the whole company property `r_l2_qualification_comments_form` (clipped to one line; click the cell for the full text).
+  - **Buyer & Designation** = deal property `buyer_designation`.
+  - **# of Meetings** = typed by hand in the manager's sheet (`Nov'26 Pipeline`, rightmost block with a `# of Meetings` header), matched by the
+    deal's company name first, then the deal name, spacing-insensitive (`src/manager_sheet.py`). New `.env` key `MANAGER_SHEET_ID` (read-only);
+    optional `MANAGER_PIPELINE_TAB` (default: the newest `<Mon>'YY Pipeline` tab, so the December tab is picked up by itself). If that sheet cannot
+    be read the column stays blank, a warning `Forecast: # of Meetings unavailable: …` is reported and the forecast is still written.
+
+### Added
+- `scripts/backfill_buyer_designation.py` — ONE-TIME: manager's "Buyer & Designation" → HubSpot deal property `buyer_designation`, **only where it is
+  empty**, never "Not identified", never guessing between deals. Dry run by default (preview CSV in `output/`); `--apply --expect N` writes exactly the
+  approved N deals and reads every one back.
+- `scripts/forecast_delta.py` now uses the shared `manager_sheet.key()`.
+- Tests: 425 (was 355).
+
 ## 2026-10-22 (late) — Release 2 DONE: "Source of meeting" is now column E (live 21:40 IST); Next Steps goes live on 26 Oct by itself
 
 ### Done

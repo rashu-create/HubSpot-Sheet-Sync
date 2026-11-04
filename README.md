@@ -9,7 +9,7 @@ the `Sales Forecast - Overview` and `Sales Forecast - AEs` tabs, and posts the r
 - **Live at:** `https://hubspot-sheet-sync.data.reo.dev` (GCP VM `sales-production`, port 8008,
   `/opt/services/hubspot-sheet-sync`)
 - **Stack:** Python, FastAPI, APScheduler, httpx, gspread, slack-sdk, Jinja2
-- **Schedule:** twice a day at **10:00 and 22:00 IST** (04:30 and 16:30 UTC), in-process APScheduler (`src/scheduler.py`, `SCHEDULER_ENABLED=true`)
+- **Schedule:** four times a day at **01:30, 10:00, 13:30 and 22:00 IST** (20:00, 04:30, 08:00 and 16:30 UTC), in-process APScheduler (`src/scheduler.py`, `SCHEDULER_ENABLED=true`)
 - **History:** `CHANGELOG.md`
 
 ## Run locally
@@ -41,7 +41,8 @@ shared VM notes (`vm-ops.md`). `scripts/` is not deployed.
 See `.env.example`. Keys: `HUBSPOT_API_TOKEN`, `HUBSPOT_AE_EMAILS`, `GOOGLE_CREDENTIALS_FILE`,
 `PIPELINE_SHEET_ID`, `PIPELINE_TAB_NAME`, `SOURCE_SHEET_ID`, `SLACK_BOT_TOKEN`,
 `SLACK_ALERT_CHANNEL`, `PORT`, `LOG_LEVEL`, `SCHEDULER_ENABLED`, `AUTH_ENABLED`, `ALLOWED_EMAILS`,
-`ANALYSIS_SHEET_ID` (Meeting Booked vs Done analysis sheet — source of the Source-of-meeting column).
+`ANALYSIS_SHEET_ID` (Meeting Booked vs Done analysis sheet — source of the Source-of-meeting column),
+`MANAGER_SHEET_ID` (the manager's "Sales Pipeline - 2026" sheet, read-only — source of `# of Meetings` on the forecast tabs; optional `MANAGER_PIPELINE_TAB`).
 
 ## How a sync works (`src/sync.py`)
 

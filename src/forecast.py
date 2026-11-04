@@ -28,6 +28,7 @@ from datetime import date, datetime, timezone
 import calendar
 
 import src.hubspot as hubspot
+import src.manager_sheet as manager_sheet
 from src.mapping import fmt_icp_segment
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,9 @@ AES_TAB = "Sales Forecast - AEs"
 PORTAL_ID = os.getenv("HUBSPOT_PORTAL_ID", "39628812").strip() or "39628812"
 DEAL_URL = f"https://app.hubspot.com/contacts/{PORTAL_ID}/record/0-3"
 
-COLUMNS = ["Company", "Type", "Owner", "Status", "Amount", "Weighted", "Close date", "Next steps", "HubSpot"]
+NEW_COLUMNS = ["Cohort", "Champion & Designation", "Buyer & Designation", "# of Meetings"]
+COLUMNS = ["Company", "Type", "Owner", "Status", "Amount", "Weighted", "Close date", "Next steps",
+           *NEW_COLUMNS, "HubSpot"]
 BLOCK_WIDTH = len(COLUMNS)
 BLOCK_GAP = 1
 AMOUNT_COL = 4      # block-relative index of "Amount"
@@ -54,16 +57,23 @@ WEIGHTED_COL = 5    # block-relative index of "Weighted"
 
 # "Sales Forecast - AEs" layout (single 11-column block, no gap)
 AE_COLUMNS = ["Company", "Type", "Owner", "Stage", "Amount", "Weighted", "Close date", "Tier",
-              "Probability", "Next steps", "HubSpot"]
+              "Probability", "Next steps", *NEW_COLUMNS, "HubSpot"]
 AE_WIDTH = len(AE_COLUMNS)
 AE_PROB_COL = 8
-AE_COL_WIDTHS = [170, 110, 150, 200, 90, 90, 80, 80, 80, 330, 60]   # px per column
+AE_COL_WIDTHS = [170, 110, 150, 200, 90, 90, 80, 80, 80, 330, 90, 260, 260, 80, 60]   # px per column
+# Champion / Buyer text is clipped to one line (full text shows when the cell is clicked), block-relative index
+OVERVIEW_CLIP_COLS = [COLUMNS.index("Champion & Designation"), COLUMNS.index("Buyer & Designation")]
+AE_CLIP_COLS = [AE_COLUMNS.index("Champion & Designation"), AE_COLUMNS.index("Buyer & Designation")]
 UNOWNED = "(unowned)"
 _SECTION_ORDER = {"CLOSED": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
 
 _DEAL_PROPERTIES = [
     "dealname", "amount", "closedate", "dealstage", "hubspot_owner_id", "hs_all_owner_ids",
-    "hs_manual_forecast_category", "next_steps", "hs_next_step",
+    "hs_manual_forecast_category", "next_steps", "hs_next_step", "buyer_designation",
+]
+_COMPANY_PROPERTIES = [
+    "name", "icp", "numberofemployees", "employee_count", "r__size_of_sales_team",
+    "r_l2_qualification_comments_form",
 ]
 
 
@@ -82,6 +92,11 @@ class ForecastDeal:
     section: str            # "CLOSED" | "HIGH" | "MEDIUM" | "LOW"
     icp_type: str = ""
     next_steps: str = ""
+    cohort: str = ""                # ICP size bucket (Enterprise / Commercial / SMB / Startup), same rule as the pipeline tab
+    champion: str = ""              # company property r_l2_qualification_comments_form (whole text)
+    buyer: str = ""                 # deal property buyer_designation
+    meetings: int | str | None = None   # "# of Meetings" from the manager's sheet (None = unknown)
+    company_name: str = ""          # associated company, used to match the manager's sheet
 
     @property
     def weighted(self) -> float:
@@ -97,6 +112,7 @@ class ForecastResult:
     deals: int = 0
     weighted: float = 0.0
     written: bool = False
+    warnings: list[str] = field(default_factory=list)    # non-fatal problems (e.g. manager sheet unreadable)
 
 
 # ── Pure helpers ──────────────────────────────────────────────────────────────
@@ -163,6 +179,32 @@ def _fmt_close(d: date) -> str:
     return f"'{d.day} {d.strftime('%b')}"
 
 
+def cohort_of(company_props: dict) -> str:
+    """ICP size bucket for a company - the exact rule behind col H "ICP - Size" of the pipeline tab."""
+    return hubspot._compute_icp_size(
+        company_props.get("employee_count"),
+        company_props.get("numberofemployees"),
+        company_props.get("r__size_of_sales_team"),
+    )
+
+
+def match_meetings(deals: list[ForecastDeal], meetings: dict[str, int | str]) -> None:
+    """Fill `deal.meetings` from the manager's map: associated company name first, then the deal name.
+
+    A deal with no match keeps its current value (None = unknown, shown as a blank cell).
+    """
+    for d in deals:
+        hit = next((meetings[k] for name in (d.company_name, d.name) if name
+                    for k in manager_sheet.name_keys(name) if k in meetings), None)
+        if hit is not None:
+            d.meetings = hit
+
+
+def _cell(value) -> int | str:
+    """A cell value: None -> blank, 0 stays 0."""
+    return "" if value is None else value
+
+
 def _sorted(deals: list[ForecastDeal]) -> list[ForecastDeal]:
     """Biggest amount first, then name."""
     return sorted(deals, key=lambda d: (-d.amount, d.name.lower()))
@@ -209,7 +251,7 @@ def build_block(deals: list[ForecastDeal], month: str, synced_at: datetime) -> B
         for d in group:
             link = f'=HYPERLINK("{DEAL_URL}/{d.id}","Open")'
             add([d.name, d.icp_type, d.owners, d.stage_label, d.amount, d.weighted,
-                 _fmt_close(d.close_date), d.next_steps, link])
+                 _fmt_close(d.close_date), d.next_steps, d.cohort, d.champion, d.buyer, _cell(d.meetings), link])
         add([])
 
     # Per-owner table, mirrors HubSpot's Sales Forecast list (weighted includes closed won).
@@ -293,7 +335,8 @@ def build_ae_grid(
         for d in mine:
             link = f'=HYPERLINK("{DEAL_URL}/{d.id}","Open")'
             add([d.name, d.icp_type, d.owners, d.stage_label, d.amount, d.weighted, _fmt_close(d.close_date),
-                 _tier_label(d.section), d.stage_prob, d.next_steps, link],
+                 _tier_label(d.section), d.stage_prob, d.next_steps, d.cohort, d.champion, d.buyer,
+                 _cell(d.meetings), link],
                 "won" if d.section == "CLOSED" else None)
         add([])
 
@@ -367,22 +410,28 @@ def _search_deals(token: str, pipeline_id: str, month: str, won_stage_ids: list[
     return list(found.values())
 
 
-def _fetch_company_icp(token: str, deals: list[dict]) -> dict[str, str]:
-    """Return {deal_id: ICP segment label} via deal->company association + company 'icp' property."""
+def _fetch_company_props(token: str, deals: list[dict]) -> dict[str, dict]:
+    """Return {deal_id: {icp_type, cohort, champion, company_name}} via deal->company association + company batch read."""
     assoc = hubspot._batch_get_deal_company_associations(token, deals)
     company_ids = sorted({cids[0] for cids in assoc.values() if cids})
-    icp_by_company: dict[str, str] = {}
+    by_company: dict[str, dict] = {}
     for i in range(0, len(company_ids), 100):
         resp = hubspot._post(
             f"{hubspot._BASE}/crm/v3/objects/companies/batch/read", token,
-            json={"inputs": [{"id": c} for c in company_ids[i:i + 100]], "properties": ["icp"]},
+            json={"inputs": [{"id": c} for c in company_ids[i:i + 100]], "properties": _COMPANY_PROPERTIES},
         )
         if resp.status_code not in (200, 207):
-            logger.warning("Forecast: company ICP read HTTP %s", resp.status_code)
+            logger.warning("Forecast: company read HTTP %s", resp.status_code)
             continue
         for company in resp.json().get("results", []):
-            icp_by_company[str(company["id"])] = fmt_icp_segment(company.get("properties", {}).get("icp"))
-    return {did: icp_by_company.get(cids[0], "") for did, cids in assoc.items() if cids}
+            props = company.get("properties", {})
+            by_company[str(company["id"])] = {
+                "icp_type": fmt_icp_segment(props.get("icp")),
+                "cohort": cohort_of(props),
+                "champion": (props.get("r_l2_qualification_comments_form") or "").strip(),
+                "company_name": (props.get("name") or "").strip(),
+            }
+    return {did: by_company[cids[0]] for did, cids in assoc.items() if cids and cids[0] in by_company}
 
 
 def fetch_forecast_deals(month: str, token: str) -> list[ForecastDeal]:
@@ -393,7 +442,7 @@ def fetch_forecast_deals(month: str, token: str) -> list[ForecastDeal]:
     stages = _fetch_stage_meta(token, pipeline_id)
     won_ids = [sid for sid, s in stages.items() if s["label"] == CLOSED_WON_LABEL]
     raw = _search_deals(token, pipeline_id, month, won_ids)
-    icp = _fetch_company_icp(token, raw)
+    company = _fetch_company_props(token, raw)
 
     deals: list[ForecastDeal] = []
     for d in raw:
@@ -406,6 +455,7 @@ def fetch_forecast_deals(month: str, token: str) -> list[ForecastDeal]:
         owner_id = str(p.get("hubspot_owner_id") or "").strip()
         primary_full = hubspot._get_owner_name(owner_id, token) if owner_id else ""
         owners = hubspot._compute_owner_first_names(p, token).replace(",", " | ")
+        co = company.get(str(d["id"]), {})
         deals.append(ForecastDeal(
             id=str(d["id"]),
             name=(p.get("dealname") or "").strip() or "(no name)",
@@ -416,8 +466,12 @@ def fetch_forecast_deals(month: str, token: str) -> list[ForecastDeal]:
             stage_label=stage["label"],
             stage_prob=stage["prob"],
             section=section,
-            icp_type=icp.get(str(d["id"]), ""),
+            icp_type=co.get("icp_type", ""),
             next_steps=((p.get("next_steps") or p.get("hs_next_step") or "").strip())[:200],
+            cohort=co.get("cohort", ""),
+            champion=co.get("champion", ""),
+            buyer=(p.get("buyer_designation") or "").strip(),
+            company_name=co.get("company_name", ""),
         ))
     return deals
 
@@ -438,11 +492,24 @@ def run_forecast_sync(dry_run: bool = False, today: date | None = None) -> Forec
     now = datetime.utcnow()
     months = roll_months(today or now.date())
     deals_by_month = {m: fetch_forecast_deals(m, token) for m in months}
+
+    # "# of Meetings" is typed by hand in the manager's sheet. If it cannot be read the column stays blank and the
+    # problem is reported, but the forecast itself is still written.
+    warnings: list[str] = []
+    try:
+        meetings = manager_sheet.meetings_by_key(manager_sheet.load_rows())
+        for deals in deals_by_month.values():
+            match_meetings(deals, meetings)
+    except manager_sheet.ManagerSheetError as exc:
+        logger.warning("Forecast: # of Meetings unavailable: %s", exc)
+        warnings.append(f"# of Meetings unavailable: {exc}")
+
     blocks = [build_block(deals_by_month[m], m, now) for m in months]
     result = ForecastResult(
         months=months,
         deals=sum(b.deals for b in blocks),
         weighted=sum(b.weighted for b in blocks),
+        warnings=warnings,
     )
     for m, b in zip(months, blocks):
         logger.info("Forecast %s: %d deals, weighted $%s, closed won $%s",
@@ -453,13 +520,14 @@ def run_forecast_sync(dry_run: bool = False, today: date | None = None) -> Forec
         return result
 
     grid, styles = compose_blocks(blocks)
-    sheets.write_forecast_tab(OVERVIEW_TAB, grid, styles, BLOCK_WIDTH, BLOCK_GAP, [AMOUNT_COL, WEIGHTED_COL])
+    sheets.write_forecast_tab(OVERVIEW_TAB, grid, styles, BLOCK_WIDTH, BLOCK_GAP, [AMOUNT_COL, WEIGHTED_COL],
+                              clip_cols=OVERVIEW_CLIP_COLS)
 
     # The Overview is already written by now; an AEs failure is reported but does not undo it.
     try:
         ae_grid, ae_styles = build_ae_grid(deals_by_month, months, now)
         sheets.write_forecast_tab(AES_TAB, ae_grid, ae_styles, AE_WIDTH, 0, [AMOUNT_COL, WEIGHTED_COL],
-                                  col_widths=AE_COL_WIDTHS, percent_cols=[AE_PROB_COL])
+                                  col_widths=AE_COL_WIDTHS, percent_cols=[AE_PROB_COL], clip_cols=AE_CLIP_COLS)
     except Exception as exc:
         raise RuntimeError(f"AEs tab: {exc}") from exc
     result.written = True
