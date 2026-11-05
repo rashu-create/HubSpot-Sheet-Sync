@@ -4,8 +4,8 @@ Reads the live block of the manager's current monthly tab (Nov'26 Pipeline: Nove
 each company with a buyer text, finds its Sales Pipeline deal and writes the text - but ONLY where HubSpot's
 `buyer_designation` is empty. It never overwrites a value, never writes "Not identified", never guesses between deals.
 
-    FORCE_IPV4=1 .venv/bin/python scripts/backfill_buyer_designation.py                 # DRY RUN (default): preview CSV only
-    FORCE_IPV4=1 .venv/bin/python scripts/backfill_buyer_designation.py --apply --expect N   # write exactly N deals
+    FORCE_IPV4=1 .venv/bin/python scripts/archive/backfill_buyer_designation.py                 # DRY RUN (default): preview CSV only
+    FORCE_IPV4=1 .venv/bin/python scripts/archive/backfill_buyer_designation.py --apply --expect N   # write exactly N deals
 
 `--apply` re-plans from live data right before writing and aborts unless the number of deals to write equals N
 (the count approved from the preview), so a sheet edited in between cannot slip in. After writing, every written
@@ -25,7 +25,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 if os.getenv("FORCE_IPV4") == "1":

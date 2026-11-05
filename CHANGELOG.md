@@ -22,6 +22,11 @@
 - `scripts/forecast_delta.py` now uses the shared `manager_sheet.key()`.
 - Tests: 425 (was 355).
 
+### Deployed + results (2026-11-05)
+- Deployed to the VM; the scheduled 13:30 IST run: 0 errors, 446 sources, 22 forecast deals, 14 Next Steps updates. AEs tab 15 headers (Overview 2 × 13), Cohort + Champion 22/22, # of Meetings 11/22 (the rest are blank in the manager's sheet).
+- **Buyer backfill applied: 23/23 deals written, 0 failed, 0 read-back mismatches** (33 manager rows with a buyer: 23 written, 10 "Not identified" skipped). The script now lives in `scripts/archive/`.
+- Lessons: (1) `MANAGER_SHEET_ID` on the VM must be a bare value — a copied trailing `# comment` is NOT stripped by systemd `EnvironmentFile` and caused a 404 (fixed, `.env` backup `.env.bak-20261105`); (2) a manual sync right after deploy hit the Sheets "read requests per minute per user" 429 (shared service account) and skipped safely; the next scheduled run was clean — watch for repeats now that the sync runs 4×/day.
+
 ## 2026-10-22 (late) — Release 2 DONE: "Source of meeting" is now column E (live 21:40 IST); Next Steps goes live on 26 Oct by itself
 
 ### Done

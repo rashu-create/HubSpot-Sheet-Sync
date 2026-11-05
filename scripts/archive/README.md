@@ -13,3 +13,4 @@ column).
 | `diagnose_owner_colD.py` | One-off debug of the Owner? column |
 | `diagnose_graphify.py` | One-off lookup diagnostic |
 | `discover_properties.py` | Produced `docs/property-map.txt` |
+| `backfill_buyer_designation.py` | One-time (2026-11-05): manager's "Buyer & Designation" → HubSpot deal `buyer_designation`, fill-blanks-only; 23 deals written, 0 failed, read back OK. Still has its own tests; do not re-run unless asked |

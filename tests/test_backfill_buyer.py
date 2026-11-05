@@ -6,7 +6,7 @@ import pytest
 
 from src.manager_sheet import ManagerRow
 
-SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "backfill_buyer_designation.py"
+SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "archive" / "backfill_buyer_designation.py"
 
 
 @pytest.fixture(scope="module")
